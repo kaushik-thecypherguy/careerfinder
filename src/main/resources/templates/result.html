@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Your Result</title>
+  <style>
+    :root{ --bg:#fafafa; --card:#fff; --text:#111827; --muted:#6b7280; --border:#e5e7eb; --accent:#dc2626; --accent-700:#b91c1c; }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:ui-sans-serif,-apple-system,Segoe UI,Roboto,Inter,Arial}
+    header{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;background:#fff;border-bottom:1px solid var(--border)}
+    .logo{width:90px;height:34px;border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-weight:800}
+    .toolbar{display:flex;gap:10px}
+    .btn{display:inline-block;padding:10px 14px;border-radius:12px;border:1px solid var(--accent);background:var(--accent);color:#fff;font-weight:800;text-decoration:none}
+    .btn.outline{background:#fff;color:var(--accent);border-color:var(--border)}
+    .btn:hover{background:var(--accent-700);border-color:var(--accent-700)}
+    .wrap{max-width:1080px;margin:24px auto;padding:0 16px;display:grid;grid-template-columns:2fr 1fr;gap:18px}
+    .card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:18px}
+    h1{margin:0 0 8px}
+    h2{margin:14px 0 8px;font-size:1.1rem}
+    ul{margin:8px 0 0 20px}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{border-bottom:1px solid var(--border);text-align:left;padding:8px}
+    th{color:var(--muted);font-weight:600}
+  </style>
+</head>
+<body>
+<header>
+  <div class="logo">LOGO</div>
+  <div class="toolbar">
+    <a th:href="@{/add-user}" class="btn outline">Sign up</a>
+    <a th:href="@{/login}" class="btn outline">Login</a>
+    <a th:href="@{/questionnaire}" class="btn">Edit answers</a>
+    <a th:href="@{/logout}" class="btn outline">Logout</a>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="card">
+    <h1 th:text="${rec.title}">Your Career Suggestions & Next Steps</h1>
+    <p th:text="${rec.summary}" style="color:var(--muted)"></p>
+
+    <h2>Suggested careers/trades</h2>
+    <ul>
+      <li th:each="c : ${rec.suggestedCareers}" th:text="${c}">Career</li>
+    </ul>
+
+    <h2 style="margin-top:16px;">Next steps</h2>
+    <ul>
+      <li th:each="s : ${rec.nextSteps}" th:text="${s}">Step</li>
+    </ul>
+  </section>
+
+  <aside class="card">
+    <h2>Your answers</h2>
+    <table>
+      <tbody>
+      <tr th:if="${rec.echoAnswers == null || #lists.isEmpty(rec.echoAnswers)}">
+        <td colspan="2" style="color:var(--muted)">No answers found. Go back to the questionnaire and submit.</td>
+      </tr>
+      <tr th:each="e : ${rec.echoAnswers}">
+        <th th:text="${e.key}">Question</th>
+        <td th:text="${e.value}">Answer</td>
+      </tr>
+      </tbody>
+    </table>
+  </aside>
+</main>
+</body>
+</html>

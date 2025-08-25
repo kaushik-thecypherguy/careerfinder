@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Login</title>
+  <style>
+    body{font-family:ui-sans-serif,-apple-system,Segoe UI,Roboto,Inter,Arial;background:#f8fafc;margin:0}
+    .wrap{max-width:380px;margin:64px auto;padding:24px;background:#fff;border:1px solid #e5e7eb;border-radius:14px}
+    h1{margin:0 0 12px}
+    .msg{margin:10px 0;padding:10px;border-radius:10px;font-size:.95rem}
+    .ok{background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0}
+    .err{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
+    label{display:block;margin:10px 0 4px}
+    input{width:100%;height:40px;padding:0 10px;border:1px solid #e5e7eb;border-radius:10px}
+    .row{margin-top:12px}
+    button{width:100%;height:44px;border-radius:10px;border:1px solid #dc2626;background:#dc2626;color:#fff;font-weight:800}
+    .meta{margin-top:12px;font-size:.95rem}
+    a{color:#dc2626;text-decoration:none}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Welcome back</h1>
+
+  <div class="msg ok" th:if="${param.registered != null}">Account created. Please log in.</div>
+  <div class="msg ok" th:if="${param.logout != null}">You have been logged out.</div>
+  <div class="msg err" th:if="${param.error != null and param.error[0] == 'unknown'}">Email not found.</div>
+  <div class="msg err" th:if="${param.error != null and param.error[0] == 'badpw'}">Incorrect password.</div>
+  <div class="msg err" th:if="${param.error != null and param.error[0] == 'disabled'}">Account is disabled.</div>
+
+  <form th:action="@{/CheckLogin}" method="post" novalidate>
+    <input type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}" />
+    <label for="email">Email</label>
+    <input id="email" name="email" type="email" th:value="${param.email}" required>
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" required>
+    <div class="row"><button type="submit">Log in</button></div>
+  </form>
+
+  <div class="meta">New here? <a th:href="@{/add-user}" href="/add-user">Create an account</a></div>
+</div>
+</body>
+</html>
+
+
