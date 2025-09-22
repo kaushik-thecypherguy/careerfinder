@@ -13,6 +13,7 @@ import java.util.Optional;
 public class UserService {
 
     @Autowired private UserRepository repository;
+    @Autowired private PasswordValidator passwordValidator;
 
     @ResponseStatus(HttpStatus.CONFLICT)
     public static class EmailAlreadyExistsException extends RuntimeException {
@@ -22,6 +23,10 @@ public class UserService {
     }
 
     public UserData createUser(UserData user) {
+        if (user == null) throw new IllegalArgumentException("User is required");
+        if (user.getUserpassword() == null) throw new IllegalArgumentException("Password is required");
+        passwordValidator.validateOrThrow(user.getUserpassword());
+
         if (repository.existsById(user.getEmail())) {
             throw new EmailAlreadyExistsException(user.getEmail());
         }
@@ -30,5 +35,9 @@ public class UserService {
 
     public Optional<UserData> findByEmail(String email) {
         return repository.findById(email);
+    }
+
+    public Optional<UserData> findByUsername(String username) {
+        return repository.findByUsername(username);
     }
 }

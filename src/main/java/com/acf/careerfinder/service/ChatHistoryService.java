@@ -42,5 +42,11 @@ public class ChatHistoryService {
         return repository.findAllChatIdsByEmail(email);
     }
 
+    // add this alias method; keep your existing methods untouched.
+    public List<Integer> findChatIdsByEmail(String email) {
+        return repository.findAllChatIdsByEmail(email);
+    }
+
+
 
 }

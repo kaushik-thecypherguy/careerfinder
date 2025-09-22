@@ -10,5 +10,3 @@ public class QuestionnaireForm {
     public void setAnswers(Map<String, String> answers) { this.answers = answers; }
 }
 
-
-

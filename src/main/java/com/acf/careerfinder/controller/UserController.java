@@ -6,6 +6,7 @@ import com.acf.careerfinder.model.UserData;
 import com.acf.careerfinder.service.QuestionnaireService;
 import com.acf.careerfinder.service.RecommendationService;
 import com.acf.careerfinder.service.UserService;
+import com.acf.careerfinder.service.PasswordValidator;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -22,6 +23,7 @@ public class UserController {
     @Autowired private UserService service;
     @Autowired private QuestionnaireService questionnaireService;
     @Autowired private RecommendationService recommendationService;
+    @Autowired private PasswordValidator passwordValidator;
 
     // --------- Pages ----------
     @GetMapping("/")
@@ -36,33 +38,38 @@ public class UserController {
     @GetMapping("/login")
     public String loginPage() { return "login"; }
 
-    @GetMapping("/questionnaire")
-    public String questionnaire(Model model, HttpSession session, RedirectAttributes ra) {
-        String email = (String) session.getAttribute("USER_EMAIL");
-        if (email == null || email.isBlank()) {
-            ra.addAttribute("redirect", "questionnaire");
-            return "redirect:/login";
-        }
-        Map<String, String> saved = questionnaireService.loadAnswersMap(email);
-        QuestionnaireForm form = new QuestionnaireForm();
-        form.setAnswers(saved);
-        model.addAttribute("form", form);
-        return "questionnaire";
-    }
-
     // --------- Actions (POST) ----------
     @PostMapping("/CreateUser")
-    public String createUser(@ModelAttribute("user") UserData u, RedirectAttributes ra) {
+    public String createUser(@ModelAttribute("user") UserData u,
+                             HttpSession session,
+                             RedirectAttributes ra) {
         try {
+            // Enforce server-side password policy
+            passwordValidator.validateOrThrow(u.getUserpassword());
+
             service.createUser(u);
+
+            // Auto-login the user and send to language select
+            session.setAttribute("USER_EMAIL", u.getEmail());
             ra.addAttribute("registered", "");
+            return "redirect:/language";
+        } catch (IllegalArgumentException weakPw) {
+            // Weak password → return to signup with banner and preserve fields
+            ra.addAttribute("weakpw", "");
             ra.addAttribute("email", u.getEmail());
-            return "redirect:/login";
+            ra.addAttribute("username", u.getUsername());
+            return "redirect:/add-user";
         } catch (UserService.EmailAlreadyExistsException ex) {
             ra.addAttribute("conflict", "");
             ra.addAttribute("email", u.getEmail());
             return "redirect:/add-user";
         }
+    }
+
+    // REPLACEMENT (does NOT collide)
+    @GetMapping("/account")
+    public String accountHome() {
+        return "redirect:/questionnaire";
     }
 
     @PostMapping("/CheckLogin")
@@ -88,7 +95,7 @@ public class UserController {
             return "redirect:/login";
         }
         session.setAttribute("USER_EMAIL", email);
-        return "redirect:/questionnaire";
+        return "redirect:/language";  // go through language → video → questionnaire
     }
 
     // --------- GET fallbacks to avoid 405s ----------
@@ -98,40 +105,9 @@ public class UserController {
     @GetMapping("/CheckLogin")
     public String checkLoginGetFallback() { return "redirect:/login"; }
 
-    // --------- Questionnaire submit -> RESULT ----------
-    @PostMapping("/questionnaire/submit")
-    public String submitQuestionnaire(@ModelAttribute("form") QuestionnaireForm form,
-                                      HttpSession session) {
-        String email = (String) session.getAttribute("USER_EMAIL");
-        if (email == null || email.isBlank()) return "redirect:/login";
-
-        Map<String, String> answers = form.getAnswers();
-        questionnaireService.saveAnswers(email, answers);
-        return "redirect:/result";
-    }
-
-    @GetMapping("/questionnaire/submit")
-    public String questionnaireSubmitGetFallback() { return "redirect:/questionnaire"; }
-
-    // --------- Result page ----------
-    @GetMapping("/result")
-    public String resultPage(Model model, HttpSession session) {
-        String email = (String) session.getAttribute("USER_EMAIL");
-        if (email == null || email.isBlank()) return "redirect:/login";
-
-        Map<String,String> answers = questionnaireService.loadAnswersMap(email);
-        Recommendation rec = recommendationService.compute(answers);
-        model.addAttribute("rec", rec);
-        return "result"; // templates/result.html
-    }
-
     // --------- Logout (allow both) ----------
     @PostMapping("/logout")
     public String doLogoutPost(HttpSession session, RedirectAttributes ra) {
-        session.invalidate(); ra.addAttribute("logout", ""); return "redirect:/login";
-    }
-    @GetMapping("/logout")
-    public String doLogoutGet(HttpSession session, RedirectAttributes ra) {
         session.invalidate(); ra.addAttribute("logout", ""); return "redirect:/login";
     }
 }

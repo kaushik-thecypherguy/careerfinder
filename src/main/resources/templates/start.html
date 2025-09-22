@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:lang="${#locale.language}" lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Select language & watch</title>
+  <style>
+    :root{ --bg:#f8fafc; --card:#ffffff; --text:#0f172a; --muted:#64748b; --border:#e2e8f0; --accent:#2563eb; --accent-700:#1d4ed8; }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:Inter, ui-sans-serif, -apple-system, Segoe UI, Roboto, Arial, sans-serif;line-height:1.55}
+    .wrap{max-width:960px;margin:28px auto;padding:0 16px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:22px}
+    h1{margin:0 0 10px;font-size:1.5rem}
+    p.lead{margin:0 0 16px;color:#374151}
+
+    /* horizontal language chips */
+    .langs{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 16px}
+    .chip{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--border);border-radius:999px;padding:8px 12px;background:#fff;cursor:pointer}
+    .chip input{appearance:none;width:16px;height:16px;border:2px solid var(--border);border-radius:999px;display:inline-block}
+    .chip input:checked{border-color:var(--accent);box-shadow:0 0 0 3px #dbeafe inset;background:var(--accent)}
+    .chip .title{font-weight:800}
+
+    .frame{position:relative;width:100%;aspect-ratio:16/9;border-radius:14px;overflow:hidden;border:1px solid var(--border);background:#000}
+    iframe{width:100%;height:100%;border:0}
+
+    .actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+    .btn{display:inline-block;padding:12px 18px;border-radius:12px;border:1px solid var(--accent);background:var(--accent);color:#fff;font-weight:800;text-decoration:none;cursor:pointer}
+    .btn.outline{background:#fff;color:var(--accent);border-color:var(--border)}
+    .btn:hover{background:var(--accent-700);border-color:var(--accent-700)}
+    .muted{color:var(--muted)}
+  </style>
+</head>
+
+<body>
+<main class="wrap" th:with="selected=${session.uiLang != null ? session.uiLang : 'en'}">
+  <section class="card">
+    <h1 th:text="${selected=='hi' ? 'टेस्ट शुरू करने से पहले' : (selected=='mr' ? 'चाचणी सुरू करण्यापूर्वी' : 'Before you start')}">
+      Before you start
+    </h1>
+    <p class="lead"
+       th:text="${selected=='hi' ? 'कृपया अपनी पसंदीदा भाषा चुनें और छोटा वीडियो देखें।'
+                  : (selected=='mr' ? 'कृपया तुमची भाषा निवडा आणि हा छोटा व्हिडिओ पाहा.'
+                  : 'Pick your language and watch a short video before starting.')}">
+      Pick your language and watch a short video before starting.
+    </p>
+
+    <!-- Language chips -->
+    <form id="langForm" th:action="@{/language/set}" method="post" novalidate>
+      <input type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}" />
+      <div class="langs" id="langChips" th:data-initial="${selected}">
+        <label class="chip"><input type="radio" name="lang" value="en" th:checked="${selected=='en'}"/><span class="title">English</span></label>
+        <label class="chip"><input type="radio" name="lang" value="hi" th:checked="${selected=='hi'}"/><span class="title">हिन्दी</span></label>
+        <label class="chip"><input type="radio" name="lang" value="mr" th:checked="${selected=='mr'}"/><span class="title">मराठी</span></label>
+      </div>
+
+      <!-- Video switches live with the radio -->
+      <div class="frame" style="margin-top:10px">
+        <iframe id="ytFrame"
+                src="https://www.youtube.com/embed/M7lc1UVf-VE?rel=0&modestbranding=1"
+                title="Instructional video"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen></iframe>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="btn" id="continueBtn">
+          <span th:text="${selected=='hi' ? 'आगे बढ़ें' : (selected=='mr' ? 'पुढे जा' : 'Continue')}">Continue</span>
+        </button>
+        <a class="btn outline" th:href="@{/questionnaire}">
+          <span th:text="${selected=='hi' ? 'वीडियो छोड़ें' : (selected=='mr' ? 'व्हिडिओ वगळा' : 'Skip video')}">Skip video</span>
+        </a>
+        <span class="muted"
+              th:text="${selected=='hi' ? 'आप किसी भी समय भाषा बदल सकते हैं।'
+                       : (selected=='mr' ? 'तुम्ही कधीही भाषा बदलू शकता.'
+                       : 'You can change the language anytime.')}">
+          You can change the language anytime.
+        </span>
+      </div>
+    </form>
+  </section>
+</main>
+
+<script>
+  // Map language → YouTube ID (replace with your real IDs anytime)
+  const VIDEO_BY_LANG = {
+    en: 'M7lc1UVf-VE',     // English sample
+    hi: 'ysz5S6PUM-U',     // Hindi sample (dummy)
+    mr: 'dQw4w9WgXcQ'      // Marathi sample (dummy)
+  };
+
+  const chips   = document.getElementById('langChips');
+  const frame   = document.getElementById('ytFrame');
+  const initial = chips?.dataset?.initial || 'en';
+
+  function setVideo(lang){
+    const id = VIDEO_BY_LANG[lang] || VIDEO_BY_LANG.en;
+    const url = `https://www.youtube.com/embed/${id}?rel=0&modestbranding=1`;
+    if (frame.src !== url) frame.src = url;
+  }
+
+  // Initialize video to session/default selection
+  setVideo(initial);
+
+  // Live update on selection
+  chips.addEventListener('change', (e)=>{
+    if (e.target && e.target.name === 'lang') {
+      setVideo(e.target.value);
+      // Smoothly scroll to video when user changes language first time
+      frame.scrollIntoView({behavior:'smooth', block:'center'});
+    }
+  });
+</script>
+</body>
+</html>

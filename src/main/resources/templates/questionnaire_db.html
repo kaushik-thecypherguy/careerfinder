@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Questionnaire</title>
+  <style>
+    :root{--bg:#f8fafc;--card:#fff;--text:#0f172a;--muted:#64748b;--border:#e2e8f0;--accent:#2563eb;--accent-700:#1d4ed8}
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,-apple-system,Segoe UI,Roboto,Arial}
+    .wrap{max-width:960px;margin:28px auto;padding:0 16px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px}
+    h1{margin:0 0 12px}
+    .q{padding:12px 0;border-bottom:1px solid var(--border)} .q:last-child{border-bottom:0}
+    .q h3{margin:0 0 8px;font-size:1.05rem}
+    .opt{display:flex;align-items:center;gap:10px;margin:6px 0}
+    .opt input{accent-color:var(--accent)}
+    textarea{width:100%;min-height:96px;border:1px solid var(--border);border-radius:12px;padding:10px}
+    .actions{display:flex;gap:12px;margin-top:18px;align-items:center;flex-wrap:wrap}
+    .btn{padding:10px 16px;border-radius:12px;border:1px solid var(--accent);background:var(--accent);color:#fff;font-weight:800;cursor:pointer;text-decoration:none}
+    .btn:hover{background:var(--accent-700)}
+    .muted{color:var(--muted)}
+  </style>
+  <script>
+    function packCheckboxes(){
+      const groups = {};
+      document.querySelectorAll('input[name="__multi__"]').forEach(cb=>{
+        const key = cb.getAttribute('data-key');
+        (groups[key] = groups[key] || []);
+        if (cb.checked) groups[key].push(cb.value);
+      });
+      Object.keys(groups).forEach(k=>{
+        const hidden = document.getElementById('hidden-' + k);
+        if (hidden) hidden.value = groups[k].join(',');
+      });
+      return true;
+    }
+  </script>
+</head>
+<body>
+<main class="wrap">
+  <section class="card">
+    <h1>Questionnaire</h1>
+
+    <form th:action="@{/questionnaire/submit}" th:object="${form}" method="post" onsubmit="return packCheckboxes()">
+      <input type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}" />
+
+      <div th:each="q : ${page.questions}" class="q">
+
+        <!-- single -->
+        <div th:if="${q.type == 'single'}">
+          <h3 th:text="${q.text}">Question text</h3>
+          <div th:each="o : ${q.options}" class="opt">
+            <input type="radio"
+                   th:id="${q.key + '-' + o.value}"
+                   th:name="${'answers[' + q.key + ']'}"
+                   th:value="${o.value}"
+                   th:checked="${form != null && form.answers != null && form.answers[q.key] == o.value}"
+                   required />
+            <label th:for="${q.key + '-' + o.value}" th:text="${o.label}">Label</label>
+          </div>
+        </div>
+
+        <!-- multi -->
+        <div th:if="${q.type == 'multi'}">
+          <h3 th:text="${q.text}">Question text</h3>
+          <input type="hidden" th:id="${'hidden-' + q.key}" th:name="${'answers[' + q.key + ']'}"
+                 th:value="${form != null && form.answers != null ? form.answers[q.key] : ''}" />
+          <div th:each="o : ${q.options}" class="opt">
+            <input type="checkbox"
+                   name="__multi__"
+                   th:id="${q.key + '-' + o.value}"
+                   th:attr="data-key=${q.key}"
+                   th:value="${o.value}"
+                   th:checked="${form != null && form.answers != null && (',' + form.answers[q.key] + ',').contains(',' + o.value + ',')}" />
+            <label th:for="${q.key + '-' + o.value}" th:text="${o.label}">Label</label>
+          </div>
+        </div>
+
+        <!-- text -->
+        <div th:if="${q.type == 'text'}">
+          <h3 th:text="${q.text}">Question text</h3>
+          <textarea th:name="${'answers[' + q.key + ']'}"
+                    th:text="${form != null && form.answers != null ? form.answers[q.key] : ''}"></textarea>
+        </div>
+
+      </div>
+
+      <div class="actions">
+        <a class="btn" th:href="@{/questionnaire(page=${page.page-1},pageSize=${#lists.size(page.questions)})}"
+           th:if="${page.page > 1}">Previous</a>
+
+        <button class="btn" type="submit" th:if="${page.page == page.totalPages}">Submit</button>
+
+        <a class="btn" th:href="@{/questionnaire(page=${page.page+1},pageSize=${#lists.size(page.questions)})}"
+           th:if="${page.page < page.totalPages}">Next</a>
+
+        <span class="muted" th:text="${'Page ' + page.page + ' of ' + page.totalPages}">Page 1 of 2</span>
+      </div>
+    </form>
+  </section>
+</main>
+</body>
+</html>
