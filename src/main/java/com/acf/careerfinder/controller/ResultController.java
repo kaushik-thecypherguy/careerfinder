@@ -1,6 +1,8 @@
 package com.acf.careerfinder.controller;
 
 import com.acf.careerfinder.model.Recommendation;
+import com.acf.careerfinder.psychometrics.TraitProfile;
+import com.acf.careerfinder.psychometrics.ScoringService;
 import com.acf.careerfinder.service.QuestionnaireService;
 import com.acf.careerfinder.service.RecommendationService;
 import jakarta.servlet.http.HttpSession;
@@ -28,11 +30,14 @@ public class ResultController {
 
     private final QuestionnaireService questionnaireService;
     private final RecommendationService recommendationService;
+    private final ScoringService scoringService;   // ✱ NEW ✱
 
     public ResultController(QuestionnaireService questionnaireService,
-                            RecommendationService recommendationService) {
+                            RecommendationService recommendationService,
+                            ScoringService scoringService) {               // ✱ NEW ✱
         this.questionnaireService = questionnaireService;
         this.recommendationService = recommendationService;
+        this.scoringService = scoringService;                              // ✱ NEW ✱
     }
 
     @GetMapping("/result")
@@ -43,9 +48,15 @@ public class ResultController {
         }
         applyLocaleFromSession(session);
 
+        // Existing: answers → AI narrative
         Map<String, String> answers = questionnaireService.loadAnswersMap(email);
         Recommendation rec = recommendationService.compute(answers);
         model.addAttribute("rec", rec);
+
+        // ✱ NEW: answers + meta → TraitProfile (0–100)
+        TraitProfile profile = scoringService.scoreForUser(email);
+        model.addAttribute("profile", profile);
+
         return "result";
     }
 }

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Admin • Questions</title>
+  <style>
+    :root{--bg:#f7f7fb;--card:#fff;--text:#0f172a;--muted:#64748b;--border:#e5e7eb;--accent:#2563eb;--danger:#dc2626}
+    *{box-sizing:border-box}
+    body{font-family:Inter,system-ui,Arial,sans-serif;margin:0;background:var(--bg);color:var(--text)}
+    .wrap{max-width:1200px;margin:24px auto;padding:0 16px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px}
+    h1{margin:0 0 8px;font-size:1.3rem}
+    small.muted{color:var(--muted)}
+    .toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    input[type=text], select{padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:#fff}
+    .btn{display:inline-block;padding:10px 14px;border-radius:10px;border:1px solid var(--accent);
+         background:var(--accent);color:#fff;font-weight:800;cursor:pointer;text-decoration:none}
+    .btn.out{background:#fff;color:var(--accent)}
+    .btn.danger{border-color:var(--danger);background:var(--danger)}
+    table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--border)}
+    th,td{padding:10px;border-bottom:1px solid #eee;text-align:left;vertical-align:top}
+    th{background:#f9fafb;color:#334155}
+    code{background:#eef2ff;padding:2px 6px;border-radius:6px}
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="card">
+    <div class="toolbar">
+      <div>
+        <h1>Admin • Questions</h1>
+        <small class="muted">All labels are in English. Use the Preview language to see the localized question text.</small>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <label>Preview language</label>
+        <form method="get" action="/admin/questions/list" style="display:flex;gap:8px;align-items:center">
+          <select name="lang" onchange="this.form.submit()">
+            <option value="en" th:selected="${currentLang=='en'}">English</option>
+            <option value="hi" th:selected="${currentLang=='hi'}">Hindi</option>
+            <option value="mr" th:selected="${currentLang=='mr'}">Marathi</option>
+          </select>
+        </form>
+        <a class="btn" href="/admin/questions">Add question</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-bottom:10px">
+      <label>Admin Secret</label>
+      <input id="secret" type="password" placeholder="enter admin secret">
+    </div>
+
+    <table>
+      <thead>
+      <tr>
+        <th>#</th>
+        <th>QKey</th>
+        <th>Section</th>
+        <th>Order</th>
+        <th>Type</th>
+        <th>Meta</th>
+        <th>Req</th>
+        <th>Act</th>
+        <th>Question (preview)</th>
+        <th>Actions</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr th:each="r : ${rows}">
+        <td th:text="${r.serial}">1</td>
+        <td><code th:text="${r.qkey}">ipip.C.01</code></td>
+        <td th:text="${r.sectionKey}">ipip</td>
+        <td th:text="${r.orderIndex}">1</td>
+        <td th:text="${r.qtype}">SINGLE</td>
+        <td th:text="${r.metaSummary}">IPIP C +</td>
+        <td th:text="${r.required ? 'Y' : 'N'}">Y</td>
+        <td th:text="${r.active ? 'Y' : 'N'}">Y</td>
+        <td th:text="${r.questionText}">Question text in preview language</td>
+        <td>
+          <a class="btn out" th:href="@{'/admin/questions'(qkey=${r.qkey})}">Edit</a>
+          <button class="btn danger" type="button" th:attr="data-qkey=${r.qkey}" onclick="confirmDelete(this)">Delete</button>
+        </td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  async function confirmDelete(btn){
+    const qkey = btn.getAttribute('data-qkey');
+    const secret = document.getElementById('secret').value.trim();
+    if(!secret){ alert('Enter admin secret'); return; }
+    if(!confirm('Delete '+qkey+' permanently?')) return;
+
+    const params = new URLSearchParams();
+    params.append('secret', secret);
+    params.append('qkey', qkey);
+
+    const res = await fetch('/admin/questions/delete', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: params.toString()
+    });
+    if(res.ok){ location.reload(); }
+    else{ alert('Delete failed: '+res.status); }
+  }
+</script>
+</body>
+</html>

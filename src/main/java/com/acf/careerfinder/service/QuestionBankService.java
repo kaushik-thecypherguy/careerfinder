@@ -24,7 +24,6 @@ public class QuestionBankService {
         this.localeRepo = localeRepo;
     }
 
-    // View models for Thymeleaf
     public record OptionVM(String value, String label) {}
     public record QuestionView(String key, String text, String type, boolean required, List<OptionVM> options) {}
     public record PageView(int page, int totalPages, List<QuestionView> questions) {}
@@ -42,14 +41,14 @@ public class QuestionBankService {
 
         List<Long> ids = window.stream().map(QItem::getId).toList();
 
-        // current language + English fallback
-        Map<Long, QItemLocale> priMap = localeRepo.findByItemIdInAndLocale(ids, lang)
-                .stream().collect(Collectors.toMap(l -> l.getItem().getId(), Function.identity()));
+        Map<Long, QItemLocale> priMap = localeRepo.findByItemIdInAndLocale(ids, lang).stream()
+                .collect(Collectors.toMap(l -> l.getItem().getId(), Function.identity()));
 
-        Map<Long, QItemLocale> enMap = localeRepo.findByItemIdInAndLocale(ids, "en")
-                .stream().collect(Collectors.toMap(l -> l.getItem().getId(), Function.identity()));
+        Map<Long, QItemLocale> enMap = "en".equals(lang) ? Collections.emptyMap()
+                : localeRepo.findByItemIdInAndLocale(ids, "en").stream()
+                .collect(Collectors.toMap(l -> l.getItem().getId(), Function.identity()));
 
-        List<QuestionView> out = new ArrayList<>(window.size());
+        List<QuestionView> out = new ArrayList<>();
         for (QItem it : window) {
             QItemLocale pri = priMap.get(it.getId());
             QItemLocale en  = enMap.get(it.getId());
@@ -57,46 +56,42 @@ public class QuestionBankService {
             String text = pickText(pri, en, it.getQkey());
             List<OptionVM> opts = pickOptions(pri, en);
 
-            String type = it.getQtype().name().toLowerCase(Locale.ROOT); // "single" | "multi" | "text"
+            String type = it.getQtype().name().toLowerCase(Locale.ROOT); // "single"|"multi"|"text"
             boolean required = Boolean.TRUE.equals(it.getRequired());
 
             out.add(new QuestionView(it.getQkey(), text, type, required, opts));
         }
+
         return new PageView(page, totalPages, out);
     }
 
     private static boolean isBlankish(String s) {
         if (s == null) return true;
         String t = s.trim();
-        return t.isEmpty() || "—".equals(t) || "[]".equals(t);
+        return t.isEmpty() || "—".equals(t) || "-".equals(t) || "–".equals(t);
     }
 
-    private String pickText(QItemLocale pri, QItemLocale en, String dkey) {
+    private String pickText(QItemLocale pri, QItemLocale en, String fallbackKey) {
         if (pri != null && !isBlankish(pri.getQuestionText())) return pri.getQuestionText();
         if (en  != null && !isBlankish(en.getQuestionText()))  return en.getQuestionText();
-        return dkey; // last fallback
+        return fallbackKey;
     }
 
     private List<OptionVM> pickOptions(QItemLocale pri, QItemLocale en) {
-        List<OptionVM> fromPri = parseOptions(pri != null ? pri.getOptionsJson() : null);
-        if (!fromPri.isEmpty()) return fromPri;
-        return parseOptions(en != null ? en.getOptionsJson() : null);
-    }
-
-    private List<OptionVM> parseOptions(String json) {
+        String json = null;
+        if (pri != null && !isBlankish(pri.getOptionsJson())) json = pri.getOptionsJson();
+        else if (en != null && !isBlankish(en.getOptionsJson())) json = en.getOptionsJson();
         if (isBlankish(json)) return Collections.emptyList();
+
         try {
-            List<Map<String, String>> raw = mapper.readValue(
-                    json, new TypeReference<List<Map<String, String>>>() {});
+            List<Map<String, String>> raw = mapper.readValue(json, new TypeReference<>(){});
             List<OptionVM> out = new ArrayList<>(raw.size());
             for (Map<String, String> m : raw) {
-                String v = Objects.toString(m.getOrDefault("value",""), "").trim();
-                String lab = Objects.toString(m.getOrDefault("label",""), "").trim();
+                String v = Objects.toString(m.get("value"), "").trim();
+                String lab = Objects.toString(m.get("label"), "").trim();
                 if (!v.isBlank() && !lab.isBlank()) out.add(new OptionVM(v, lab));
             }
             return out;
-        } catch (Exception e) {
-            return Collections.emptyList();
-        }
+        } catch (Exception ignore) { return Collections.emptyList(); }
     }
 }

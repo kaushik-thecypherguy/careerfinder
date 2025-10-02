@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Admin • Questions</title>
+  <style>
+    :root{--bg:#f7f7fb;--card:#fff;--text:#0f172a;--muted:#64748b;--border:#e5e7eb;--accent:#2563eb;--danger:#dc2626}
+    *{box-sizing:border-box}
+    body{font-family:Inter,system-ui,Arial,sans-serif;margin:0;background:var(--bg);color:var(--text)}
+    .wrap{max-width:1100px;margin:24px auto;padding:0 16px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px}
+    h1{margin:0 0 8px;font-size:1.3rem}
+    label{font-weight:700;display:block;margin:10px 0 6px}
+    input[type=text], input[type=number], textarea, select{
+      width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:#fff}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .cols3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+    .btn{display:inline-block;margin-top:10px;padding:10px 14px;border-radius:10px;
+      border:1px solid var(--accent);background:var(--accent);color:#fff;font-weight:800;cursor:pointer}
+    .btn.out{background:#fff;color:var(--accent)}
+    .btn.danger{border-color:var(--danger);background:var(--danger)}
+    code,pre{background:#0b1021;color:#e8eaf6;border-radius:10px;padding:8px 10px;display:block;overflow:auto}
+    small.muted{color:var(--muted)}
+    table{width:100%;border-collapse:collapse;margin-top:8px}
+    th,td{border-bottom:1px solid #eee;padding:6px}
+    .flash{padding:10px 12px;border-radius:10px;background:#ecfeff;border:1px solid #a5f3fc;margin-bottom:12px}
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="card">
+    <h1>Admin • Upsert / Edit / Delete Question</h1>
+    <small class="muted">
+      Use the secret to authorize. Options JSON is auto‑built from the tables below on save.
+    </small>
+    <div th:if="${ok != null}" class="flash">
+      <b th:text="${ok}">ok</b> — <span th:text="${msg}">message</span>
+    </div>
+  </div>
+
+  <!-- Admin secret (copied into hidden fields on submit) -->
+  <label style="display:block;margin-bottom:8px">
+    <span>Admin Secret</span>
+    <input id="secret" type="password" placeholder="enter admin secret"
+           style="display:block;width:360px;padding:8px;margin-top:4px">
+  </label>
+
+  <!-- UPSERT FORM -->
+  <form id="upsertForm" method="post" action="/admin/questions/upsert" onsubmit="return beforeUpsert();">
+    <input type="hidden" name="secret" id="secretHidden">
+    <!-- hidden locale options target fields -->
+    <input type="hidden" name="enOptionsJson" id="enOptionsJson">
+    <input type="hidden" name="hiOptionsJson" id="hiOptionsJson">
+    <input type="hidden" name="mrOptionsJson" id="mrOptionsJson">
+
+    <div class="card">
+      <div class="row">
+        <div>
+          <label>QKey</label>
+          <input name="qkey" id="qkey" type="text" placeholder="ipip.C.03 or sjt.T06.01" required/>
+        </div>
+        <div>
+          <label>Section & Order</label>
+          <div class="row">
+            <select name="sectionKey" id="sectionKey">
+              <option value="ipip">ipip</option>
+              <option value="sjt">sjt</option>
+            </select>
+            <input name="orderIndex" id="orderIndex" type="number" placeholder="order index" value="1" min="0"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>QType</label>
+          <select name="qtype" id="qtype">
+            <option value="SINGLE">SINGLE (Likert / YesNo / MCQ)</option>
+            <option value="MULTI">MULTI (Multi‑select)</option>
+          </select>
+        </div>
+        <div>
+          <label>Required & Active</label>
+          <div class="row">
+            <select name="required" id="required"><option value="true">required</option><option value="false">optional</option></select>
+            <select name="active" id="active"><option value="true">active</option><option value="false">inactive</option></select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Meta builder -->
+      <label>Meta (auto‑build)</label>
+      <div class="card" style="background:#fafafa">
+        <div class="row" id="meta-ipip">
+          <div>
+            <label>IPIP Domain</label>
+            <select id="ipipDomain">
+              <option value="O">O</option><option value="C">C</option><option value="E">E</option>
+              <option value="A">A</option><option value="ES">ES</option>
+            </select>
+          </div>
+          <div>
+            <label>Keyed</label>
+            <select id="ipipKeyed"><option value="+">+</option><option value="-">-</option></select>
+          </div>
+        </div>
+
+        <div class="row" id="meta-sjt" style="display:none">
+          <div>
+            <label>SJT Format</label>
+            <select id="sjtFormat">
+              <option value="MULTI_SELECT">MULTI_SELECT</option>
+              <option value="YES_NO">YES_NO</option>
+              <option value="SINGLE_BEST">SINGLE_BEST</option>
+            </select>
+          </div>
+          <div>
+            <label>Trait</label>
+            <select id="sjtTrait">
+              <option>T01</option><option>T02</option><option>T03</option><option>T04</option>
+              <option>T05</option><option>T06</option><option>T07</option><option>T08</option>
+              <option>T09</option><option>T10</option><option>T11</option><option>T12</option>
+            </select>
+          </div>
+        </div>
+
+        <label>Meta JSON (preview)</label>
+        <textarea name="metaJson" id="metaJson" rows="4" spellcheck="false"></textarea>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+          <button class="btn out" type="button" onclick="fillMetaIpip()">Build IPIP</button>
+          <button class="btn out" type="button" onclick="fillMetaSjtMulti()">Build SJT MULTI</button>
+          <button class="btn out" type="button" onclick="fillMetaSjtYesNo()">Build SJT YES/NO</button>
+          <button class="btn out" type="button" onclick="fillMetaSjtSingle()">Build SJT SINGLE_BEST</button>
+        </div>
+      </div>
+
+      <!-- Locales -->
+      <label>Locales</label>
+      <div class="cols3">
+        <div class="card locale" data-locale="en">
+          <b>English (en)</b>
+          <label>Question</label>
+          <textarea name="enQuestion" rows="3" class="qtext"></textarea>
+          <label>Options</label>
+          <table class="opt"><thead><tr><th>value</th><th>label</th><th></th></tr></thead><tbody></tbody></table>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn out" type="button" onclick="addLikert(this,'en')">+ Likert 1…5</button>
+            <button class="btn out" type="button" onclick="addYN(this)">+ Yes/No</button>
+            <button class="btn out" type="button" onclick="addABCD(this)">+ a/b/c/d</button>
+          </div>
+        </div>
+
+        <div class="card locale" data-locale="hi">
+          <b>Hindi (hi)</b>
+          <label>Question</label>
+          <textarea name="hiQuestion" rows="3" class="qtext"></textarea>
+          <label>Options</label>
+          <table class="opt"><thead><tr><th>value</th><th>label</th><th></th></tr></thead><tbody></tbody></table>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn out" type="button" onclick="addLikert(this,'hi')">+ Likert 1…5</button>
+            <button class="btn out" type="button" onclick="addYN(this)">+ Yes/No</button>
+            <button class="btn out" type="button" onclick="addABCD(this)">+ a/b/c/d</button>
+          </div>
+        </div>
+
+        <div class="card locale" data-locale="mr">
+          <b>Marathi (mr)</b>
+          <label>Question</label>
+          <textarea name="mrQuestion" rows="3" class="qtext"></textarea>
+          <label>Options</label>
+          <table class="opt"><thead><tr><th>value</th><th>label</th><th></th></tr></thead><tbody></tbody></table>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn out" type="button" onclick="addLikert(this,'mr')">+ Likert 1…5</button>
+            <button class="btn out" type="button" onclick="addYN(this)">+ Yes/No</button>
+            <button class="btn out" type="button" onclick="addABCD(this)">+ a/b/c/d</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <small class="muted">Tip: The <b>values</b> must be stable across languages (e.g., "1".."5", "yes"/"no", or "a"/"b"/"c"/"d").</small>
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:8px;justify-content:flex-end">
+          <button class="btn" type="submit">Save / Upsert</button>
+          <button class="btn out" type="button" onclick="clearAll()">Clear</button>
+        </div>
+      </div>
+
+      <label>Payload preview</label>
+      <pre id="payload">(will appear here)</pre>
+    </div>
+  </form>
+
+  <!-- LOAD + DELETE -->
+  <div class="card">
+    <div class="row">
+      <div>
+        <label>Load by QKey</label>
+        <div style="display:flex;gap:8px">
+          <input id="loadQkey" type="text" placeholder="ipip.C.01 or sjt.T06.01"/>
+          <button class="btn out" type="button" onclick="loadQuestion()">Load</button>
+        </div>
+      </div>
+      <form id="deleteForm" method="post" action="/admin/questions/delete" onsubmit="return beforeDelete();">
+        <input type="hidden" name="secret" id="secretHiddenDel">
+        <label>Delete by QKey</label>
+        <div style="display:flex;gap:8px">
+          <input name="qkey" id="deleteQkey" type="text" placeholder="ipip.C.01 or sjt.T06.01" required/>
+          <button class="btn danger" type="submit">Delete</button>
+        </div>
+        <small class="muted">Deletes locales first, then the item.</small>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // --- helpers for option tables ---
+  function findCardButton(btn){ return btn.closest('.card.locale'); }
+  function tbodyOf(card){ return card.querySelector('table.opt tbody'); }
+
+  function addRow(tbody, val, label){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input value="${val || ''}"/></td>
+      <td><input value="${label || ''}"/></td>
+      <td><button type="button" class="btn out" onclick="this.closest('tr').remove()">–</button></td>`;
+    tbody.appendChild(tr);
+  }
+
+  function addLikert(btn, lang){
+    const labels = {
+      en: ['Very inaccurate','Moderately inaccurate','Neither','Moderately accurate','Very accurate'],
+      hi: ['बहुत गलत','थोड़ा गलत','न तो सही न गलत','कुछ हद तक सही','बहुत सही'],
+      mr: ['फारच चुकीचे','काहीअंशी चुकीचे','ना बरोबर ना चूक','काहीअंशी बरोबर','फारच बरोबर']
+    }[lang] || ['1','2','3','4','5'];
+    const tb = tbodyOf(findCardButton(btn)); tb.innerHTML='';
+    ['1','2','3','4','5'].forEach((v,i)=>addRow(tb, v, labels[i]));
+    rebuildPreview();
+  }
+  function addYN(btn){
+    const tb = tbodyOf(findCardButton(btn)); tb.innerHTML='';
+    addRow(tb,'yes','Yes'); addRow(tb,'no','No');
+    rebuildPreview();
+  }
+  function addABCD(btn){
+    const tb = tbodyOf(findCardButton(btn)); tb.innerHTML='';
+    addRow(tb,'a','Option A'); addRow(tb,'b','Option B'); addRow(tb,'c','Option C'); addRow(tb,'d','Option D');
+    rebuildPreview();
+  }
+
+  function optionsJsonFromCard(card){
+    const arr = [];
+    card.querySelectorAll('table.opt tbody tr').forEach(tr=>{
+      const inp = tr.querySelectorAll('input');
+      const value = (inp[0].value||'').trim();
+      const label = inp[1].value||'';
+      if (value) arr.push({value,label});
+    });
+    return JSON.stringify(arr);
+  }
+  function setOptionsFromJson(card, json){
+    const tb = tbodyOf(card); tb.innerHTML='';
+    try{
+      const arr = JSON.parse(json || '[]');
+      arr.forEach(o => addRow(tb, o.value, o.label));
+    }catch(_){ /* ignore */ }
+  }
+
+  // --- secret sync into hidden fields ---
+  const secretEl = document.getElementById('secret');
+  function syncSecret(){
+    document.getElementById('secretHidden').value = secretEl.value;
+    document.getElementById('secretHiddenDel').value = secretEl.value;
+  }
+  secretEl.addEventListener('input', syncSecret);
+  window.addEventListener('DOMContentLoaded', syncSecret);
+
+  // --- meta builders ---
+  const sectionKeyEl = document.getElementById('sectionKey');
+  const metaIpipEl = document.getElementById('meta-ipip');
+  const metaSjtEl  = document.getElementById('meta-sjt');
+  const metaJsonEl = document.getElementById('metaJson');
+
+  function showMeta(){
+    const s = sectionKeyEl.value;
+    metaIpipEl.style.display = (s==='ipip') ? 'grid' : 'none';
+    metaSjtEl.style.display  = (s==='sjt')  ? 'grid' : 'none';
+  }
+
+  function fillMetaIpip(){
+    sectionKeyEl.value='ipip'; showMeta();
+    const d = document.getElementById('ipipDomain').value;
+    const k = document.getElementById('ipipKeyed').value;
+    metaJsonEl.value = JSON.stringify({kind:'IPIP', domain:d, keyed:k, scale:'Likert5', category:`IPIP:${d}`});
+    rebuildPreview();
+  }
+  function fillMetaSjtMulti(){
+    sectionKeyEl.value='sjt'; showMeta();
+    const t = document.getElementById('sjtTrait').value;
+    const tagByValue = {a:'E', b:'E', c:'O', d:'X'}; // starter map; edit as needed
+    metaJsonEl.value = JSON.stringify({kind:'SJT', format:'MULTI_SELECT', trait:t, tagByValue});
+    rebuildPreview();
+  }
+  function fillMetaSjtYesNo(){
+    sectionKeyEl.value='sjt'; showMeta();
+    const t = document.getElementById('sjtTrait').value;
+    metaJsonEl.value = JSON.stringify({kind:'SJT', format:'YES_NO', trait:t, correctValue:'no'});
+    rebuildPreview();
+  }
+  function fillMetaSjtSingle(){
+    sectionKeyEl.value='sjt'; showMeta();
+    const t = document.getElementById('sjtTrait').value;
+    metaJsonEl.value = JSON.stringify({kind:'SJT', format:'SINGLE_BEST', trait:t, correctValue:'b'});
+    rebuildPreview();
+  }
+
+  // --- preview DTO (for sanity)
+  function rebuildPreview(){
+    const dto = {
+      qkey: document.getElementById('qkey').value,
+      sectionKey: document.getElementById('sectionKey').value,
+      orderIndex: parseInt(document.getElementById('orderIndex').value||'0',10),
+      qtype: document.getElementById('qtype').value,
+      required: document.getElementById('required').value === 'true',
+      active: document.getElementById('active').value === 'true',
+      metaJson: metaJsonEl.value,
+      enQuestion: document.querySelector('.card.locale[data-locale="en"] .qtext').value,
+      hiQuestion: document.querySelector('.card.locale[data-locale="hi"] .qtext').value,
+      mrQuestion: document.querySelector('.card.locale[data-locale="mr"] .qtext').value,
+      enOptionsJson: optionsJsonFromCard(document.querySelector('.card.locale[data-locale="en"]')),
+      hiOptionsJson: optionsJsonFromCard(document.querySelector('.card.locale[data-locale="hi"]')),
+      mrOptionsJson: optionsJsonFromCard(document.querySelector('.card.locale[data-locale="mr"]'))
+    };
+    document.getElementById('payload').textContent = JSON.stringify(dto, null, 2);
+  }
+  document.querySelectorAll('input,select,textarea').forEach(el=>{
+    el.addEventListener('input', rebuildPreview);
+  });
+  sectionKeyEl.addEventListener('change', ()=>{ showMeta(); rebuildPreview(); });
+
+  // --- submit hooks ---
+  function beforeUpsert(){
+    syncSecret();
+    // copy options into hidden fields
+    document.getElementById('enOptionsJson').value = optionsJsonFromCard(document.querySelector('.card.locale[data-locale="en"]'));
+    document.getElementById('hiOptionsJson').value = optionsJsonFromCard(document.querySelector('.card.locale[data-locale="hi"]'));
+    document.getElementById('mrOptionsJson').value = optionsJsonFromCard(document.querySelector('.card.locale[data-locale="mr"]'));
+    return true; // allow submit
+  }
+  function beforeDelete(){
+    syncSecret();
+    return confirm('Delete this question permanently?');
+  }
+
+  // --- load existing for edit ---
+  async function loadQuestion(){
+    syncSecret();
+    const qkey = document.getElementById('loadQkey').value.trim();
+    if(!qkey){ alert('Enter qkey'); return; }
+    const params = new URLSearchParams({ qkey, secret: secretEl.value });
+    const res = await fetch(`/admin/questions/load?`+params.toString());
+    if(!res.ok){ alert('Load failed: '+res.status); return; }
+    const dto = await res.json();
+
+    // core
+    document.getElementById('qkey').value = dto.qkey || '';
+    document.getElementById('sectionKey').value = dto.sectionKey || 'ipip';
+    document.getElementById('orderIndex').value = dto.orderIndex ?? 1;
+    document.getElementById('qtype').value = dto.qtype || 'SINGLE';
+    document.getElementById('required').value = (dto.required === true ? 'true':'false');
+    document.getElementById('active').value   = (dto.active   === true ? 'true':'false');
+    document.getElementById('metaJson').value = dto.metaJson || '';
+    showMeta();
+
+    // locales: question + options
+    document.querySelector('.card.locale[data-locale="en"] .qtext').value = dto.enQuestion || '';
+    document.querySelector('.card.locale[data-locale="hi"] .qtext').value = dto.hiQuestion || '';
+    document.querySelector('.card.locale[data-locale="mr"] .qtext').value = dto.mrQuestion || '';
+
+    setOptionsFromJson(document.querySelector('.card.locale[data-locale="en"]'), dto.enOptionsJson || '[]');
+    setOptionsFromJson(document.querySelector('.card.locale[data-locale="hi"]'), dto.hiOptionsJson || '[]');
+    setOptionsFromJson(document.querySelector('.card.locale[data-locale="mr"]'), dto.mrOptionsJson || '[]');
+
+    // copy qkey into delete box
+    document.getElementById('deleteQkey').value = dto.qkey || '';
+
+    rebuildPreview();
+  }
+
+  function clearAll(){ location.href = '/admin/questions'; }
+
+  // --- boot defaults ---
+  fillMetaIpip();
+  addLikert(document.querySelector('.card.locale[data-locale="en"] .btn.out'), 'en');
+  addLikert(document.querySelector('.card.locale[data-locale="hi"] .btn.out'), 'hi');
+  addLikert(document.querySelector('.card.locale[data-locale="mr"] .btn.out'), 'mr');
+  rebuildPreview();
+</script>
+
+<script>
+  (function(){
+    const p = new URLSearchParams(location.search);
+    const q = p.get('qkey');
+    if(q){
+      const loadBox = document.getElementById('loadQkey');
+      if (loadBox) loadBox.value = q;
+      const sec = document.getElementById('secret');
+      if (sec) sec.focus();
+      // Note: we do NOT auto-load because the secret is needed; after typing the secret, click "Load".
+    }
+  })();
+</script>
+
+
+</body>
+</html>
