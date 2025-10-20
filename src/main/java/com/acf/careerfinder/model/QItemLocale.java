@@ -3,11 +3,16 @@ package com.acf.careerfinder.model;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "q_item_locale",
+@Table(
+        name = "q_item_locale",
         uniqueConstraints = @UniqueConstraint(
                 name = "uq_q_item_locale",
                 columnNames = {"q_item_id", "locale"}
-        ))
+        ),
+        indexes = {
+                @Index(name = "idx_q_item_locale_item_locale", columnList = "q_item_id, locale")
+        }
+)
 public class QItemLocale {
 
     @Id
@@ -16,8 +21,10 @@ public class QItemLocale {
 
     // FK to QItem
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "q_item_id", nullable = false,
-            foreignKey = @ForeignKey(name = "fk_q_item_locale_q_item"))
+    @JoinColumn(
+            name = "q_item_id", nullable = false,
+            foreignKey = @ForeignKey(name = "fk_q_item_locale_q_item")
+    )
     private QItem item;
 
     @Column(name = "locale", nullable = false, length = 5)

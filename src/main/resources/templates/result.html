@@ -5,102 +5,200 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title th:text="${rec.title}">Result</title>
   <style>
-    :root{ --bg:#f6f7fb; --card:#ffffff; --text:#0f172a; --muted:#64748b; --border:#e5e7eb; --accent:#2563eb; --accent-700:#1d4ed8; }
+    :root{
+      --bg:#f6f7fb; --card:#ffffff; --text:#0f172a; --muted:#64748b; --border:#e5e7eb;
+      --accent:#2563eb; --accent-700:#1d4ed8; --ok:#10b981; --warn:#f59e0b; --bad:#ef4444;
+    }
     *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:var(--text);font-family:Inter, ui-sans-serif, -apple-system, Segoe UI, Roboto, Arial, sans-serif}
-    .wrap{max-width:1100px;margin:36px auto;padding:0 16px;display:grid;grid-template-columns:2fr 1fr;gap:18px}
-    @media (max-width:960px){.wrap{grid-template-columns:1fr}}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:0 1px 8px rgba(0,0,0,.04)}
-    h1{margin:0 0 8px;font-size:1.4rem}
-    h2{margin:18px 0 10px;font-size:1.1rem}
-    p.lead{margin:0 0 6px;color:var(--muted)}
-    ul{margin:8px 0 0 20px}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    .wrap{max-width:1200px;margin:40px auto;padding:0 20px;display:grid;grid-template-columns:2fr 1fr;gap:22px}
+    @media (max-width:1024px){.wrap{grid-template-columns:1fr}}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:0 1px 10px rgba(0,0,0,.05)}
+    h1{margin:0 0 8px;font-size:1.6rem}
+    h2{margin:18px 0 10px;font-size:1.2rem}
+    p.lead{margin:0 0 10px;color:var(--muted)}
+    .muted{color:var(--muted)}
+    .small{font-size:.92rem}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    @media (max-width:720px){.grid{grid-template-columns:1fr}}
+
+    /* Bars */
+    .row{display:flex;align-items:center;gap:10px;margin:8px 0}
+    .trait{flex:0 0 50%}
+    .meter{flex:1;height:12px;border-radius:999px;background:#e5e7eb;overflow:hidden}
+    .fill{height:100%;background:var(--accent)}
+    .val{width:52px;text-align:right;font-variant-numeric:tabular-nums;color:#334155}
+
+    /* Sector list */
+    .sector-row{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid var(--border)}
+    .sector-row:last-child{border-bottom:none}
+    .s-title{font-weight:700}
+    .s-score{font-variant-numeric:tabular-nums}
+    .pill{display:inline-block;padding:4px 10px;border-radius:999px;font-size:.82rem}
+    .pill.ok{background:#ecfdf5;color:#065f46}
+    .pill.bad{background:#fef2f2;color:#991b1b}
+    .reasons{margin:6px 0 0 0;padding-left:18px;color:#475569}
+
+    details{margin-top:10px}
+    details summary{cursor:pointer;color:#334155}
+    .badge{display:inline-block;padding:5px 10px;border-radius:999px;background:#eef2ff;color:#3730a3;font-weight:700;font-size:.85rem}
     a.link{color:var(--accent);font-weight:700;text-decoration:none}
     a.link:hover{color:var(--accent-700);text-decoration:underline}
-    table{width:100%;border-collapse:collapse;margin-top:8px}
-    th,td{padding:10px;border-bottom:1px solid var(--border);vertical-align:top}
-    th{width:44%;color:#475569;text-align:left}
-    .badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-weight:700;font-size:.85rem}
-
-    /* tiny bar */
-    .row{display:flex;align-items:center;gap:10px;margin:6px 0}
-    .trait{flex:0 0 58%}
-    .meter{flex:1 1 auto;height:10px;border-radius:999px;background:#e5e7eb;overflow:hidden}
-    .fill{height:100%;background:var(--accent)}
-    .val{width:46px;text-align:right;font-variant-numeric:tabular-nums;color:#334155}
   </style>
 </head>
 <body>
 <main class="wrap">
 
-  <!-- NEW: trait profile (left column) -->
-  <section class="card" th:if="${profile != null}">
-    <h2>Trait profile (0–100)</h2>
+  <!-- LEFT: Sectors + Traits -->
+  <section class="card">
 
-    <!-- 12 traits -->
+    <!-- Top‑5 Eligible -->
+    <h1>Top 5 sectors (Eligible now)</h1>
+    <p class="lead">These are your best fits based on your trait profile and current eligibility.</p>
+
+    <div th:if="${topEligible != null && !#lists.isEmpty(topEligible)}">
+      <div class="sector-row" th:each="s : ${topEligible}">
+        <div style="flex:1">
+          <div class="s-title" th:text="${s.name}">Sector name</div>
+          <div class="muted small">
+            Why fit: <span th:text="${#strings.listJoin(s.topContrib, ', ')}">Trait A, Trait B, Trait C</span>
+          </div>
+        </div>
+        <div class="s-score">
+          <div class="val" th:text="${#numbers.formatDecimal(s.score, 1, 1)}">0.0</div>
+        </div>
+        <div><span class="pill ok">Eligible</span></div>
+      </div>
+    </div>
+    <div th:if="${topEligible == null || #lists.isEmpty(topEligible)}" class="muted">
+      No eligible sectors yet. Check “Could have been Top‑5” below for how to qualify.
+    </div>
+
+    <!-- Could have been Top‑5 (ineligible >= cutoff) -->
+    <h2 style="margin-top:18px">Could have been Top‑5 if you were eligible</h2>
+    <!-- Use literal substitution (pipe) to avoid parser issues -->
+    <p class="small muted"
+       th:text="|Shown because score ≥ cutoff ${#numbers.formatDecimal(eligibleCutoff, 1, 1)}|">
+      Shown because score ≥ cutoff 0.0
+    </p>
+
+    <details th:open="${nearMiss != null and #lists.size(nearMiss) <= 5}">
+      <summary><b th:text="${#lists.size(nearMiss)} + ' sector(s) listed'">0 sector(s) listed</b></summary>
+
+      <div th:if="${nearMiss != null && !#lists.isEmpty(nearMiss)}">
+        <div class="sector-row" th:each="s : ${nearMiss}">
+          <div style="flex:1">
+            <div class="s-title" th:text="${s.name}">Sector name</div>
+            <div class="muted small">
+              Why fit: <span th:text="${#strings.listJoin(s.topContrib, ', ')}">Trait A, Trait B, Trait C</span>
+            </div>
+            <ul class="reasons" th:if="${s.reasons != null && !#lists.isEmpty(s.reasons)}">
+              <li th:each="r : ${s.reasons}" th:text="${r}">Eligibility reason</li>
+            </ul>
+          </div>
+          <div class="s-score">
+            <div class="val" th:text="${#numbers.formatDecimal(s.score, 1, 1)}">0.0</div>
+          </div>
+          <div><span class="pill bad">Not eligible</span></div>
+        </div>
+      </div>
+
+      <div th:if="${nearMiss == null || #lists.isEmpty(nearMiss)}" class="muted">
+        None for now — great! You’re eligible for your best matches already.
+      </div>
+    </details>
+
+    <!-- Divider -->
+    <hr style="margin:18px 0;border:none;border-top:1px solid var(--border)" />
+
+    <!-- Trait profile -->
+    <h2>Trait profile (0–100)</h2>
+    <p class="small muted">Final = 60% IPIP + 40% SJT per trait.</p>
+
+    <!-- Bars -->
     <div th:each="e : ${profile.traitFinal0to100().entrySet()}">
       <div class="row">
         <div class="trait"
-             th:text="${T(com.acf.careerfinder.psychometrics.ScoringConfig).traitLabel(e.key)}">Trait name</div>
+             th:text="${T(com.acf.careerfinder.psychometrics.ScoringService).traitLabel(e.key)}">Trait name</div>
         <div class="meter"><div class="fill" th:style="${'width:' + e.value + '%'}"></div></div>
-        <div class="val" th:text="${#numbers.formatDecimal(e.value,1, 'POINT', 1, 'POINT')}">0.0</div>
+        <div class="val" th:text="${#numbers.formatDecimal(e.value, 1, 1)}">0.0</div>
       </div>
     </div>
 
-    <!-- optional: OCEAN -->
-    <h2 style="margin-top:14px;color:#475569">Domains</h2>
-    <div th:each="d : ${profile.ocean0to100().entrySet()}">
-      <div class="row">
-        <div class="trait"
-             th:text="${T(com.acf.careerfinder.psychometrics.ScoringConfig).domainLabel(d.key)}">Domain</div>
-        <div class="meter"><div class="fill" th:style="${'width:' + d.value + '%'}"></div></div>
-        <div class="val" th:text="${#numbers.formatDecimal(d.value,1, 'POINT', 1, 'POINT')}">0.0</div>
+    <!-- Breakdown -->
+    <details>
+      <summary><b>Show breakdown (IPIP vs SJT vs Final)</b></summary>
+      <div class="grid">
+        <div>
+          <table style="width:100%;border-collapse:collapse">
+            <thead>
+            <tr><th style="text-align:left;color:#475569">Trait</th><th>IPIP</th><th>SJT</th><th>Final</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="e : ${profile.traitFinal0to100().entrySet()}">
+              <td th:text="${T(com.acf.careerfinder.psychometrics.ScoringService).traitLabel(e.key)}">Trait</td>
+              <td th:text="${#numbers.formatDecimal(profile.traitFromIpip0to100().get(e.key), 1, 1)}">0.0</td>
+              <td th:text="${#numbers.formatDecimal(profile.traitSjt0to100().get(e.key), 1, 1)}">0.0</td>
+              <td th:text="${#numbers.formatDecimal(e.value, 1, 1)}">0.0</td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <h3 style="margin-top:0;color:#475569">Domains</h3>
+          <div th:each="d : ${profile.ocean0to100().entrySet()}">
+            <div class="row">
+              <div class="trait"
+                   th:text="${T(com.acf.careerfinder.psychometrics.ScoringService).domainLabel(d.key)}">Domain</div>
+              <div class="meter"><div class="fill" th:style="${'width:' + d.value + '%'}"></div></div>
+              <div class="val" th:text="${#numbers.formatDecimal(d.value, 1, 1)}">0.0</div>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+    </details>
   </section>
 
-  <!-- LEFT: recommendations (existing) -->
-  <section class="card">
-    <h1 th:text="${rec.title}">Your result</h1>
+  <!-- RIGHT: Narrative + Answers -->
+  <aside class="card">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <div class="badge">Summary</div>
+    </div>
+    <h2 th:text="${rec.title}">Your result</h2>
     <p class="lead" th:text="${rec.summary}">Summary goes here</p>
 
-    <h2 th:text="${rec.careersTitle}">Suggested careers/trades</h2>
+    <h3 th:text="${rec.careersTitle}">Suggested careers/trades</h3>
     <ul>
       <li th:each="c : ${rec.suggestedCareers}">
         <a class="link" th:href="${c.href}" th:text="${c.label}" target="_blank" rel="noopener">Career</a>
       </li>
     </ul>
 
-    <h2 th:text="${rec.nextTitle}">Next steps</h2>
+    <h3 th:text="${rec.nextTitle}">Next steps</h3>
     <ul>
       <li th:each="s : ${rec.nextSteps}" th:text="${s}">Step</li>
     </ul>
-  </section>
 
-  <!-- RIGHT: answers echo (existing) -->
-  <aside class="card">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-      <div class="badge" th:text="${rec.answersTitle}">Your answers</div>
-    </div>
-
-    <table>
+    <hr style="margin:18px 0;border:none;border-top:1px solid var(--border)" />
+    <div class="badge" th:text="${rec.answersTitle}">Your answers</div>
+    <table style="width:100%;border-collapse:collapse;margin-top:8px">
       <tbody>
       <!-- Prefer AI-prepared localized rows -->
       <tr th:if="${rec.answersEcho != null && !#lists.isEmpty(rec.answersEcho)}"
           th:each="row : ${rec.answersEcho}">
-        <th th:text="${row.label}">Question</th>
-        <td th:text="${row.value}">Answer</td>
+        <th style="text-align:left;color:#475569;padding:8px;border-bottom:1px solid var(--border)" th:text="${row.label}">Question</th>
+        <td style="padding:8px;border-bottom:1px solid var(--border)" th:text="${row.value}">Answer</td>
       </tr>
 
       <!-- Fallback to legacy echo -->
       <tr th:if="${(rec.answersEcho == null || #lists.isEmpty(rec.answersEcho))
                    and (rec.echoAnswers == null || #lists.isEmpty(rec.echoAnswers))}">
-        <td colspan="2" style="color:#6b7280">No answers found.</td>
+        <td colspan="2" class="muted">No answers found.</td>
       </tr>
       <tr th:if="${rec.answersEcho == null || #lists.isEmpty(rec.answersEcho)}"
           th:each="e : ${rec.echoAnswers}">
-        <th th:text="${e.key}">Question</th>
-        <td th:text="${e.value}">Answer</td>
+        <th style="text-align:left;color:#475569;padding:8px;border-bottom:1px solid var(--border)" th:text="${e.key}">Question</th>
+        <td style="padding:8px;border-bottom:1px solid var(--border)" th:text="${e.value}">Answer</td>
       </tr>
       </tbody>
     </table>

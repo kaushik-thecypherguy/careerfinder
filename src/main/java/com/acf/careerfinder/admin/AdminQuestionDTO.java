@@ -1,21 +1,16 @@
 package com.acf.careerfinder.admin;
 
 public class AdminQuestionDTO {
-    // Core
-    private String qkey;          // ipip.C.01 or sjt.T06.01
-    private String sectionKey;    // "ipip" or "sjt"
-    private String qtype;         // "SINGLE" or "MULTI"
-    private Integer orderIndex;   // 1..N
-    private boolean required;     // true/false
-    private boolean active;       // true/false
-    private String metaJson;      // JSON contract
-
-    // Locales: question text + options JSON
+    private String qkey;
+    private String sectionKey;
+    private String qtype;
+    private Integer orderIndex;
+    private boolean required;
+    private boolean active;
+    private String metaJson;
     private String enQuestion;    private String enOptionsJson;
     private String hiQuestion;    private String hiOptionsJson;
     private String mrQuestion;    private String mrOptionsJson;
-
-    // getters/setters
     public String getQkey() { return qkey; }
     public void setQkey(String qkey) { this.qkey = qkey; }
     public String getSectionKey() { return sectionKey; }

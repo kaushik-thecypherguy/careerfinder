@@ -8,23 +8,15 @@ public class AdminQuestionRow {
     private final String qtype;
     private final boolean required;
     private final boolean active;
-    private final String metaSummary;   // e.g., "IPIP C +" or "SJT MULTI T06"
-    private final String questionText;  // localized preview
-
+    private final String metaSummary;
+    private final String questionText;
     public AdminQuestionRow(int serial, String qkey, String sectionKey, Integer orderIndex,
                             String qtype, boolean required, boolean active,
                             String metaSummary, String questionText) {
-        this.serial = serial;
-        this.qkey = qkey;
-        this.sectionKey = sectionKey;
-        this.orderIndex = orderIndex;
-        this.qtype = qtype;
-        this.required = required;
-        this.active = active;
-        this.metaSummary = metaSummary;
-        this.questionText = questionText;
+        this.serial = serial; this.qkey = qkey; this.sectionKey = sectionKey; this.orderIndex = orderIndex;
+        this.qtype = qtype; this.required = required; this.active = active;
+        this.metaSummary = metaSummary; this.questionText = questionText;
     }
-
     public int getSerial() { return serial; }
     public String getQkey() { return qkey; }
     public String getSectionKey() { return sectionKey; }

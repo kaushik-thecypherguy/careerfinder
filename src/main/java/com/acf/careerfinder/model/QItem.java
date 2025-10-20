@@ -3,10 +3,14 @@ package com.acf.careerfinder.model;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "q_item",
+@Table(
+        name = "q_item",
         indexes = {
-                @Index(name = "idx_q_item_section_order", columnList = "section_key, order_index")
-        })
+                @Index(name = "idx_q_item_section_order", columnList = "section_key, order_index"),
+                // helps the "active only" listings we do on the questionnaire path
+                @Index(name = "idx_q_item_active_section_order", columnList = "active, section_key, order_index")
+        }
+)
 public class QItem {
 
     public enum QType { SINGLE, MULTI, TEXT }
@@ -28,10 +32,10 @@ public class QItem {
     @Column(name = "qtype", nullable = false, length = 16)
     private QType qtype;
 
-    @Column(name = "required")
+    @Column(name = "required", nullable = false)
     private Boolean required = Boolean.TRUE;
 
-    @Column(name = "active")
+    @Column(name = "active", nullable = false)
     private Boolean active = Boolean.TRUE;
 
     @Column(name = "meta_json", columnDefinition = "text")
@@ -39,6 +43,7 @@ public class QItem {
 
     // --- getters/setters ---
     public Long getId() { return id; }
+
     public String getQkey() { return qkey; }
     public void setQkey(String qkey) { this.qkey = qkey; }
 

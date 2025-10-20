@@ -14,7 +14,6 @@
     h1{margin:0 0 10px;font-size:1.5rem}
     p.lead{margin:0 0 16px;color:#374151}
 
-    /* horizontal language chips */
     .langs{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 16px}
     .chip{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--border);border-radius:999px;padding:8px 12px;background:#fff;cursor:pointer}
     .chip input{appearance:none;width:16px;height:16px;border:2px solid var(--border);border-radius:999px;display:inline-block}
@@ -33,20 +32,26 @@
 </head>
 
 <body>
-<main class="wrap" th:with="selected=${session.uiLang != null ? session.uiLang : 'en'}">
+<main class="wrap"
+      th:with="selected=${currentLang != null ? currentLang : 'en'},
+               locked=${langLocked != null ? langLocked : false}">
   <section class="card">
     <h1 th:text="${selected=='hi' ? 'टेस्ट शुरू करने से पहले' : (selected=='mr' ? 'चाचणी सुरू करण्यापूर्वी' : 'Before you start')}">
       Before you start
     </h1>
     <p class="lead"
-       th:text="${selected=='hi' ? 'कृपया अपनी पसंदीदा भाषा चुनें और छोटा वीडियो देखें।'
-                  : (selected=='mr' ? 'कृपया तुमची भाषा निवडा आणि हा छोटा व्हिडिओ पाहा.'
-                  : 'Pick your language and watch a short video before starting.')}">
-      Pick your language and watch a short video before starting.
+       th:if="${!locked}"
+       th:text="${selected=='hi' ? 'कृपया अपनी पसंदीदा भाषा चुनें और छोटा वीडियो देखें। टेस्ट शुरू करने के बाद भाषा बदली नहीं जा सकती।'
+                  : (selected=='mr' ? 'कृपया तुमची भाषा निवडा आणि हा छोटा व्हिडिओ पाहा. चाचणी सुरू झाल्यावर भाषा बदलता येणार नाही.'
+                  : 'Choose your language and watch a short video. Once you start, the language cannot be changed.')}">
+      Choose your language and watch a short video. Once you start, the language cannot be changed.
+    </p>
+    <p class="lead muted" th:if="${locked}">
+      Language is locked for this session. You can resume the questionnaire.
     </p>
 
-    <!-- Language chips -->
-    <form id="langForm" th:action="@{/language/set}" method="post" novalidate>
+    <!-- Language selection + video (hidden once locked) -->
+    <form id="langForm" th:action="@{/language/set}" method="post" novalidate th:if="${!locked}">
       <input type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}" />
       <div class="langs" id="langChips" th:data-initial="${selected}">
         <label class="chip"><input type="radio" name="lang" value="en" th:checked="${selected=='en'}"/><span class="title">English</span></label>
@@ -54,7 +59,6 @@
         <label class="chip"><input type="radio" name="lang" value="mr" th:checked="${selected=='mr'}"/><span class="title">मराठी</span></label>
       </div>
 
-      <!-- Video switches live with the radio -->
       <div class="frame" style="margin-top:10px">
         <iframe id="ytFrame"
                 src="https://www.youtube.com/embed/M7lc1UVf-VE?rel=0&modestbranding=1"
@@ -64,52 +68,51 @@
       </div>
 
       <div class="actions">
-        <button type="submit" class="btn" id="continueBtn">
-          <span th:text="${selected=='hi' ? 'आगे बढ़ें' : (selected=='mr' ? 'पुढे जा' : 'Continue')}">Continue</span>
-        </button>
-        <a class="btn outline" th:href="@{/questionnaire}">
-          <span th:text="${selected=='hi' ? 'वीडियो छोड़ें' : (selected=='mr' ? 'व्हिडिओ वगळा' : 'Skip video')}">Skip video</span>
-        </a>
-        <span class="muted"
-              th:text="${selected=='hi' ? 'आप किसी भी समय भाषा बदल सकते हैं।'
-                       : (selected=='mr' ? 'तुम्ही कधीही भाषा बदलू शकता.'
-                       : 'You can change the language anytime.')}">
-          You can change the language anytime.
-        </span>
+        <button type="submit" class="btn">Start test</button>
+        <!-- CHANGED: go to gating (not questionnaire) -->
+        <a class="btn outline" th:href="@{/gating}">Skip video</a>
       </div>
     </form>
+
+    <!-- Locked state -->
+    <div th:if="${locked}">
+      <div class="frame" style="margin-top:10px">
+        <iframe id="ytFrameLocked"
+                src="https://www.youtube.com/embed/M7lc1UVf-VE?rel=0&modestbranding=1"
+                title="Instructional video"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen></iframe>
+      </div>
+      <div class="actions">
+        <!-- If gating not yet completed, QuestionnaireController will redirect to /gating -->
+        <a class="btn" th:href="@{/questionnaire}">Resume</a>
+      </div>
+    </div>
   </section>
 </main>
 
 <script>
-  // Map language → YouTube ID (replace with your real IDs anytime)
-  const VIDEO_BY_LANG = {
-    en: 'M7lc1UVf-VE',     // English sample
-    hi: 'ysz5S6PUM-U',     // Hindi sample (dummy)
-    mr: 'dQw4w9WgXcQ'      // Marathi sample (dummy)
-  };
+  // Map language → YouTube ID (replace with your real IDs)
+  const VIDEO_BY_LANG = { en: 'M7lc1UVf-VE', hi: 'ysz5S6PUM-U', mr: 'dQw4w9WgXcQ' };
 
-  const chips   = document.getElementById('langChips');
-  const frame   = document.getElementById('ytFrame');
-  const initial = chips?.dataset?.initial || 'en';
+  const chips = document.getElementById('langChips');
+  const frame = document.getElementById('ytFrame');
+  if (chips && frame) {
+    const initial = chips.dataset.initial || 'en';
+    setVideo(initial);
+    chips.addEventListener('change', (e)=>{
+      if (e.target && e.target.name === 'lang') {
+        setVideo(e.target.value);
+        frame.scrollIntoView({behavior:'smooth', block:'center'});
+      }
+    });
+  }
 
   function setVideo(lang){
     const id = VIDEO_BY_LANG[lang] || VIDEO_BY_LANG.en;
     const url = `https://www.youtube.com/embed/${id}?rel=0&modestbranding=1`;
-    if (frame.src !== url) frame.src = url;
+    if (frame && frame.src !== url) frame.src = url;
   }
-
-  // Initialize video to session/default selection
-  setVideo(initial);
-
-  // Live update on selection
-  chips.addEventListener('change', (e)=>{
-    if (e.target && e.target.name === 'lang') {
-      setVideo(e.target.value);
-      // Smoothly scroll to video when user changes language first time
-      frame.scrollIntoView({behavior:'smooth', block:'center'});
-    }
-  });
 </script>
 </body>
 </html>

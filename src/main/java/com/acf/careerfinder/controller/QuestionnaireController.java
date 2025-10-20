@@ -37,21 +37,29 @@ public class QuestionnaireController {
     public String showQuestionnaire(Model model,
                                     HttpSession session,
                                     @RequestParam(value = "page", defaultValue = "1") int page,
-                                    @RequestParam(value = "pageSize", defaultValue = "10") int pageSize,
-                                    @RequestParam(value = "lang", required = false) String overrideLang) {
-        String lang = (overrideLang != null && !overrideLang.isBlank())
-                ? overrideLang
-                : (String) session.getAttribute("uiLang");
+                                    @RequestParam(value = "pageSize", defaultValue = "12") int pageSize) {
 
+        // --- NEW: gating guard (do not allow skipping About‑You gating) ---
+        if (!Boolean.TRUE.equals(session.getAttribute("GATING_DONE"))) {
+            return "redirect:/gating";
+        }
+
+        // Always use session language; do not accept an override param here.
+        String lang = (String) session.getAttribute("uiLang");
         if (lang == null || lang.isBlank()) lang = "en";
         session.setAttribute("uiLang", lang);
         LocaleContextHolder.setLocale(toLocale(lang));
 
-        // load view model
+        // Lock language at first entry to questionnaire
+        if (!Boolean.TRUE.equals(session.getAttribute("LANG_LOCKED"))) {
+            session.setAttribute("LANG_LOCKED", true);
+        }
+
+        // Load questions page
         QuestionBankService.PageView pv = questionBankService.loadPage(lang, page, pageSize);
         model.addAttribute("page", pv);
 
-        // load saved answers for radio preselecting etc.
+        // Pre-fill saved answers (for persistence across pages/sessions)
         QuestionnaireForm form = new QuestionnaireForm();
         String email = (String) session.getAttribute("USER_EMAIL");
         if (email != null && !email.isBlank()) {

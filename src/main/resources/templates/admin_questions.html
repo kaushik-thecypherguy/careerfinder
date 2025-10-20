@@ -19,28 +19,40 @@
     .btn{display:inline-block;margin-top:10px;padding:10px 14px;border-radius:10px;
       border:1px solid var(--accent);background:var(--accent);color:#fff;font-weight:800;cursor:pointer}
     .btn.out{background:#fff;color:var(--accent)}
-    .btn.danger{border-color:var(--danger);background:var(--danger)}
+    .btn.ghost{background:transparent;border-color:var(--border);color:#0f172a}
+    .tag{display:inline-block;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#334155;font-size:.78rem;font-weight:700}
     code,pre{background:#0b1021;color:#e8eaf6;border-radius:10px;padding:8px 10px;display:block;overflow:auto}
     small.muted{color:var(--muted)}
     table{width:100%;border-collapse:collapse;margin-top:8px}
     th,td{border-bottom:1px solid #eee;padding:6px}
+    th{background:#f7f8fb}
     .flash{padding:10px 12px;border-radius:10px;background:#ecfeff;border:1px solid #a5f3fc;margin-bottom:12px}
+    .actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   </style>
 </head>
 <body>
 <div class="wrap">
 
-  <div class="card">
-    <h1>Admin • Upsert / Edit / Delete Question</h1>
-    <small class="muted">
-      Use the secret to authorize. Options JSON is auto‑built from the tables below on save.
-    </small>
-    <div th:if="${ok != null}" class="flash">
-      <b th:text="${ok}">ok</b> — <span th:text="${msg}">message</span>
+  <!-- Header / navigation -->
+  <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+    <div>
+      <h1>Admin • Upsert / Edit / Delete Question</h1>
+      <small class="muted">Use the secret to authorize. Options JSON is auto‑built from the tables below on save.</small>
+      <div th:if="${ok != null}" class="flash" style="margin-top:8px">
+        <b th:text="${ok}">ok</b> — <span th:text="${msg}">message</span>
+      </div>
+      <div id="modeTag" class="tag" style="margin-top:6px;display:none"></div>
+    </div>
+    <div class="actions">
+      <form id="gotoList" method="get" action="/admin/questions/list" style="margin:0">
+        <input type="hidden" name="secret" id="secretHiddenGoto"/>
+        <button class="btn out" type="submit">Back to list</button>
+      </form>
+      <button class="btn ghost" type="button" onclick="clearAll()">Add new</button>
     </div>
   </div>
 
-  <!-- Admin secret (copied into hidden fields on submit) -->
+  <!-- Admin secret -->
   <label style="display:block;margin-bottom:8px">
     <span>Admin Secret</span>
     <input id="secret" type="password" placeholder="enter admin secret"
@@ -49,8 +61,8 @@
 
   <!-- UPSERT FORM -->
   <form id="upsertForm" method="post" action="/admin/questions/upsert" onsubmit="return beforeUpsert();">
+    <input type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}"/>
     <input type="hidden" name="secret" id="secretHidden">
-    <!-- hidden locale options target fields -->
     <input type="hidden" name="enOptionsJson" id="enOptionsJson">
     <input type="hidden" name="hiOptionsJson" id="hiOptionsJson">
     <input type="hidden" name="mrOptionsJson" id="mrOptionsJson">
@@ -59,7 +71,11 @@
       <div class="row">
         <div>
           <label>QKey</label>
-          <input name="qkey" id="qkey" type="text" placeholder="ipip.C.03 or sjt.T06.01" required/>
+          <input name="qkey" id="qkey" type="text"
+                 placeholder="ipip.C.03 or sjt.T06.01" required
+                 pattern="(ipip\.(O|C|E|A|ES)\.\d{2}|sjt\.T(0[1-9]|1[0-2])\.\d{2})"
+                 title="Allowed: ipip.[O|C|E|A|ES].nn  or  sjt.T01..T12.nn"/>
+          <small class="muted">Convention: <b>ipip.[O|C|E|A|ES].nn</b> or <b>sjt.Txx.nn</b></small>
         </div>
         <div>
           <label>Section & Order</label>
@@ -80,6 +96,7 @@
             <option value="SINGLE">SINGLE (Likert / YesNo / MCQ)</option>
             <option value="MULTI">MULTI (Multi‑select)</option>
           </select>
+          <small class="muted">Meta builders will set this automatically.</small>
         </div>
         <div>
           <label>Required & Active</label>
@@ -135,6 +152,24 @@
           <button class="btn out" type="button" onclick="fillMetaSjtYesNo()">Build SJT YES/NO</button>
           <button class="btn out" type="button" onclick="fillMetaSjtSingle()">Build SJT SINGLE_BEST</button>
         </div>
+
+        <!-- SJT MULTI tag mapper -->
+        <div id="sjtTagsPanel" class="card" style="display:none;margin-top:10px">
+          <b>SJT MULTI — Tag each option with <code>E</code>, <code>O</code> or <code>X</code></b>
+          <small class="muted" style="display:block;margin-top:4px">
+            Tip: Click <b>Sync</b> to read the English option values, then choose a tag per value (2–8 options supported).
+            Click <b>Apply to Meta</b> to write <code>tagByValue</code> into Meta JSON.
+          </small>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">
+            <button class="btn out" type="button" onclick="tagsSync()">Sync from EN options</button>
+            <button class="btn out" type="button" onclick="tagsAutofill()">Auto‑fill E/O/X</button>
+            <button class="btn" type="button" onclick="tagsApply()">Apply to Meta</button>
+          </div>
+          <table id="tagsTable">
+            <thead><tr><th>value</th><th>tag (E/O/X)</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
 
       <!-- Locales -->
@@ -143,46 +178,55 @@
         <div class="card locale" data-locale="en">
           <b>English (en)</b>
           <label>Question</label>
-          <textarea name="enQuestion" rows="3" class="qtext"></textarea>
+          <textarea name="enQuestion" rows="3" class="qtext" required></textarea>
           <label>Options</label>
           <table class="opt"><thead><tr><th>value</th><th>label</th><th></th></tr></thead><tbody></tbody></table>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
             <button class="btn out" type="button" onclick="addLikert(this,'en')">+ Likert 1…5</button>
             <button class="btn out" type="button" onclick="addYN(this)">+ Yes/No</button>
             <button class="btn out" type="button" onclick="addABCD(this)">+ a/b/c/d</button>
+            <button class="btn out" type="button" onclick="addABCD8(this)">+ a…h (8)</button>
+            <button class="btn out" type="button" onclick="addEmpty(this)">+ Add option</button>
           </div>
         </div>
 
         <div class="card locale" data-locale="hi">
           <b>Hindi (hi)</b>
           <label>Question</label>
-          <textarea name="hiQuestion" rows="3" class="qtext"></textarea>
+          <textarea name="hiQuestion" rows="3" class="qtext" required></textarea>
           <label>Options</label>
           <table class="opt"><thead><tr><th>value</th><th>label</th><th></th></tr></thead><tbody></tbody></table>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
             <button class="btn out" type="button" onclick="addLikert(this,'hi')">+ Likert 1…5</button>
             <button class="btn out" type="button" onclick="addYN(this)">+ Yes/No</button>
             <button class="btn out" type="button" onclick="addABCD(this)">+ a/b/c/d</button>
+            <button class="btn out" type="button" onclick="addABCD8(this)">+ a…h (8)</button>
+            <button class="btn out" type="button" onclick="addEmpty(this)">+ Add option</button>
           </div>
         </div>
 
         <div class="card locale" data-locale="mr">
           <b>Marathi (mr)</b>
           <label>Question</label>
-          <textarea name="mrQuestion" rows="3" class="qtext"></textarea>
+          <textarea name="mrQuestion" rows="3" class="qtext" required></textarea>
           <label>Options</label>
           <table class="opt"><thead><tr><th>value</th><th>label</th><th></th></tr></thead><tbody></tbody></table>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
             <button class="btn out" type="button" onclick="addLikert(this,'mr')">+ Likert 1…5</button>
             <button class="btn out" type="button" onclick="addYN(this)">+ Yes/No</button>
             <button class="btn out" type="button" onclick="addABCD(this)">+ a/b/c/d</button>
+            <button class="btn out" type="button" onclick="addABCD8(this)">+ a…h (8)</button>
+            <button class="btn out" type="button" onclick="addEmpty(this)">+ Add option</button>
           </div>
         </div>
       </div>
 
       <div class="row">
         <div>
-          <small class="muted">Tip: The <b>values</b> must be stable across languages (e.g., "1".."5", "yes"/"no", or "a"/"b"/"c"/"d").</small>
+          <small class="muted">
+            Tip: The <b>values</b> must be stable across languages (e.g., "1".."5", "yes"/"no", or "a"/"b"/"c"/...).
+            For SJT MULTI we support 2–8 options; map each value to E/O/X in the panel above.
+          </small>
         </div>
         <div style="display:flex;align-items:flex-end;gap:8px;justify-content:flex-end">
           <button class="btn" type="submit">Save / Upsert</button>
@@ -194,29 +238,6 @@
       <pre id="payload">(will appear here)</pre>
     </div>
   </form>
-
-  <!-- LOAD + DELETE -->
-  <div class="card">
-    <div class="row">
-      <div>
-        <label>Load by QKey</label>
-        <div style="display:flex;gap:8px">
-          <input id="loadQkey" type="text" placeholder="ipip.C.01 or sjt.T06.01"/>
-          <button class="btn out" type="button" onclick="loadQuestion()">Load</button>
-        </div>
-      </div>
-      <form id="deleteForm" method="post" action="/admin/questions/delete" onsubmit="return beforeDelete();">
-        <input type="hidden" name="secret" id="secretHiddenDel">
-        <label>Delete by QKey</label>
-        <div style="display:flex;gap:8px">
-          <input name="qkey" id="deleteQkey" type="text" placeholder="ipip.C.01 or sjt.T06.01" required/>
-          <button class="btn danger" type="submit">Delete</button>
-        </div>
-        <small class="muted">Deletes locales first, then the item.</small>
-      </form>
-    </div>
-  </div>
-
 </div>
 
 <script>
@@ -229,7 +250,7 @@
     tr.innerHTML = `
       <td><input value="${val || ''}"/></td>
       <td><input value="${label || ''}"/></td>
-      <td><button type="button" class="btn out" onclick="this.closest('tr').remove()">–</button></td>`;
+      <td><button type="button" class="btn out" onclick="this.closest('tr').remove(); rebuildPreview();">–</button></td>`;
     tbody.appendChild(tr);
   }
 
@@ -253,6 +274,15 @@
     addRow(tb,'a','Option A'); addRow(tb,'b','Option B'); addRow(tb,'c','Option C'); addRow(tb,'d','Option D');
     rebuildPreview();
   }
+  function addABCD8(btn){
+    const tb = tbodyOf(findCardButton(btn)); tb.innerHTML='';
+    const vals = ['a','b','c','d','e','f','g','h'];
+    vals.forEach((v,i)=>addRow(tb, v, 'Option ' + String.fromCharCode(65+i)));
+    rebuildPreview();
+  }
+  function addEmpty(btn){
+    const tb = tbodyOf(findCardButton(btn)); addRow(tb, '', ''); rebuildPreview();
+  }
 
   function optionsJsonFromCard(card){
     const arr = [];
@@ -269,32 +299,45 @@
     try{
       const arr = JSON.parse(json || '[]');
       arr.forEach(o => addRow(tb, o.value, o.label));
-    }catch(_){ /* ignore */ }
+    }catch(_){}
   }
 
-  // --- secret sync into hidden fields ---
+  // --- secret sync into hidden fields + persist
   const secretEl = document.getElementById('secret');
   function syncSecret(){
-    document.getElementById('secretHidden').value = secretEl.value;
-    document.getElementById('secretHiddenDel').value = secretEl.value;
+    const val = secretEl.value || '';
+    document.getElementById('secretHidden').value = val;
+    const goto = document.getElementById('secretHiddenGoto');
+    if (goto) goto.value = val;
+    sessionStorage.setItem('ADMIN_SECRET', val);
   }
   secretEl.addEventListener('input', syncSecret);
   window.addEventListener('DOMContentLoaded', syncSecret);
 
-  // --- meta builders ---
+  // --- meta builders + SJT tag panel ---
   const sectionKeyEl = document.getElementById('sectionKey');
-  const metaIpipEl = document.getElementById('meta-ipip');
-  const metaSjtEl  = document.getElementById('meta-sjt');
-  const metaJsonEl = document.getElementById('metaJson');
+  const qtypeEl      = document.getElementById('qtype');
+  const metaIpipEl   = document.getElementById('meta-ipip');
+  const metaSjtEl    = document.getElementById('meta-sjt');
+  const metaJsonEl   = document.getElementById('metaJson');
+  const sjtFormatEl  = document.getElementById('sjtFormat');
+  const sjtTagsPanel = document.getElementById('sjtTagsPanel');
 
   function showMeta(){
     const s = sectionKeyEl.value;
     metaIpipEl.style.display = (s==='ipip') ? 'grid' : 'none';
     metaSjtEl.style.display  = (s==='sjt')  ? 'grid' : 'none';
+    showSjtTags();
   }
+  function showSjtTags(){
+    const show = sectionKeyEl.value==='sjt' && sjtFormatEl.value==='MULTI_SELECT';
+    sjtTagsPanel.style.display = show ? 'block' : 'none';
+  }
+  sjtFormatEl.addEventListener('change', ()=>{ showSjtTags(); });
 
   function fillMetaIpip(){
     sectionKeyEl.value='ipip'; showMeta();
+    qtypeEl.value = 'SINGLE'; // Likert
     const d = document.getElementById('ipipDomain').value;
     const k = document.getElementById('ipipKeyed').value;
     metaJsonEl.value = JSON.stringify({kind:'IPIP', domain:d, keyed:k, scale:'Likert5', category:`IPIP:${d}`});
@@ -302,22 +345,87 @@
   }
   function fillMetaSjtMulti(){
     sectionKeyEl.value='sjt'; showMeta();
+    sjtFormatEl.value='MULTI_SELECT'; showSjtTags();
+    qtypeEl.value = 'MULTI';
     const t = document.getElementById('sjtTrait').value;
-    const tagByValue = {a:'E', b:'E', c:'O', d:'X'}; // starter map; edit as needed
-    metaJsonEl.value = JSON.stringify({kind:'SJT', format:'MULTI_SELECT', trait:t, tagByValue});
+    // start with empty tag map; admin will sync/apply
+    metaJsonEl.value = JSON.stringify({kind:'SJT', format:'MULTI_SELECT', trait:t, tagByValue:{}});
+    tagsSync();
     rebuildPreview();
   }
   function fillMetaSjtYesNo(){
     sectionKeyEl.value='sjt'; showMeta();
+    sjtFormatEl.value='YES_NO'; showSjtTags();
+    qtypeEl.value = 'SINGLE';
     const t = document.getElementById('sjtTrait').value;
     metaJsonEl.value = JSON.stringify({kind:'SJT', format:'YES_NO', trait:t, correctValue:'no'});
     rebuildPreview();
   }
   function fillMetaSjtSingle(){
     sectionKeyEl.value='sjt'; showMeta();
+    sjtFormatEl.value='SINGLE_BEST'; showSjtTags();
+    qtypeEl.value = 'SINGLE';
     const t = document.getElementById('sjtTrait').value;
     metaJsonEl.value = JSON.stringify({kind:'SJT', format:'SINGLE_BEST', trait:t, correctValue:'b'});
     rebuildPreview();
+  }
+
+  // --- SJT tag mapper helpers ---
+  function enValues(){
+    const enCard = document.querySelector('.card.locale[data-locale="en"]');
+    const vals = [];
+    enCard.querySelectorAll('table.opt tbody tr').forEach(tr=>{
+      const v = (tr.querySelectorAll('input')[0].value||'').trim();
+      if (v) vals.push(v);
+    });
+    return vals;
+  }
+  function readMeta(){
+    try{ return JSON.parse(metaJsonEl.value||'{}'); }catch(_){ return {}; }
+  }
+  function tagsSync(){
+    const vals = enValues();
+    const tbody = document.querySelector('#tagsTable tbody'); tbody.innerHTML='';
+    const meta = readMeta(); const map = (meta && meta.tagByValue) ? meta.tagByValue : {};
+    vals.forEach((v,i)=>{
+      const current = (map[v] || map[v?.toLowerCase()] || '').toUpperCase();
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><code>${v}</code></td>
+        <td>
+          <select>
+            <option value="">—</option>
+            <option value="E" ${current==='E'?'selected':''}>E</option>
+            <option value="O" ${current==='O'?'selected':''}>O</option>
+            <option value="X" ${current==='X'?'selected':''}>X</option>
+          </select>
+        </td>`;
+      tr.dataset.value = v;
+      tbody.appendChild(tr);
+    });
+  }
+  function tagsAutofill(){
+    const opts = ['E','O','X'];
+    document.querySelectorAll('#tagsTable tbody tr').forEach((tr,idx)=>{
+      const s = tr.querySelector('select'); s.value = opts[idx%opts.length];
+    });
+  }
+  function tagsApply(){
+    const rows = Array.from(document.querySelectorAll('#tagsTable tbody tr'));
+    const mapping = {};
+    rows.forEach(tr=>{
+      const v = tr.dataset.value;
+      const t = (tr.querySelector('select').value||'').toUpperCase();
+      if (v && t) mapping[v] = t;
+    });
+    const meta = readMeta();
+    meta.kind = 'SJT';
+    meta.format = 'MULTI_SELECT';
+    if (!meta.trait) meta.trait = document.getElementById('sjtTrait').value;
+    meta.tagByValue = mapping;
+    metaJsonEl.value = JSON.stringify(meta);
+    rebuildPreview();
+    alert('Tag mapping applied to Meta JSON.');
   }
 
   // --- preview DTO (for sanity)
@@ -343,30 +451,143 @@
     el.addEventListener('input', rebuildPreview);
   });
   sectionKeyEl.addEventListener('change', ()=>{ showMeta(); rebuildPreview(); });
+  sjtFormatEl.addEventListener('change', rebuildPreview);
 
-  // --- submit hooks ---
+  // --- strict validators ---
+  const QKEY_RE = /^(ipip\.(O|C|E|A|ES)\.\d{2}|sjt\.T(0[1-9]|1[0-2])\.\d{2})$/;
+
+  function arrEq(a,b){ if(a.length!==b.length) return false; for(let i=0;i<a.length;i++){ if(a[i]!==b[i]) return false; } return true; }
+  function readVals(locale){
+    try{
+      const card = document.querySelector(`.card.locale[data-locale="${locale}"]`);
+      const arr = JSON.parse(optionsJsonFromCard(card) || '[]');
+      return arr.map(o => (o.value||'').trim());
+    }catch(_){ return []; }
+  }
+  function readValsLower(locale){ return readVals(locale).map(v=>v.toLowerCase()); }
+
+  function ensureSameValuesAcrossLocales(ref){
+    const hi = readVals('hi'); const mr = readVals('mr');
+    if (!arrEq(readVals('en'), ref) || !arrEq(hi, ref) || !arrEq(mr, ref)) {
+      alert('Option values must be IDENTICAL across en/hi/mr.');
+      return false;
+    }
+    return true;
+  }
+  function isLettersAtoH(vals){ return vals.every(v => /^[a-h]$/.test(v)); }
+
+  function isTagMapComplete(vals, tagMap){
+    const keys = Object.keys(tagMap || {});
+    if (keys.length !== vals.length) return false;
+    const ks = new Set(keys.map(k=>k.toLowerCase()));
+    const vs = new Set(vals.map(v=>v.toLowerCase()));
+    if (ks.size !== vs.size) return false;
+    for (const v of vs) if(!ks.has(v)) return false;
+    for (const k of keys){
+      const t = String(tagMap[k]||'').toUpperCase();
+      if (!['E','O','X'].includes(t)) return false;
+    }
+    return true;
+  }
+
+  // --- submit hook (STRICT) ---
   function beforeUpsert(){
     syncSecret();
-    // copy options into hidden fields
+
+    const qkey = (document.getElementById('qkey').value||'').trim();
+    const section = document.getElementById('sectionKey').value;
+    const qtype = document.getElementById('qtype').value;
+    let meta;
+    try{ meta = JSON.parse(metaJsonEl.value||'{}'); }catch(_){ alert('Meta JSON is invalid.'); return false; }
+
+    if(!QKEY_RE.test(qkey)){ alert('QKey must match ipip.[O|C|E|A|ES].nn  or  sjt.T01..T12.nn'); return false; }
+    if(!(section==='ipip'||section==='sjt')){ alert('Section must be ipip or sjt'); return false; }
+
+    // Validate options & meta per section
+    if(section==='ipip'){
+      if(String(meta.kind).toUpperCase()!=='IPIP'){ alert('Meta.kind must be IPIP.'); return false; }
+      if(!['O','C','E','A','ES'].includes(meta.domain)){ alert('IPIP domain must be one of O,C,E,A,ES.'); return false; }
+      if(!['+','-'].includes(meta.keyed)){ alert('IPIP keyed must be + or -.'); return false; }
+      if(meta.scale!=='Likert5'){ alert('IPIP scale must be Likert5.'); return false; }
+      if(qtype!=='SINGLE'){ alert('IPIP must use QType = SINGLE.'); return false; }
+      const expect = ['1','2','3','4','5'];
+      if(!arrEq(readVals('en'), expect)){ alert('IPIP options (EN) must be values 1..5'); return false; }
+      if(!ensureSameValuesAcrossLocales(expect)) return false;
+
+    } else { // SJT
+      if(String(meta.kind).toUpperCase()!=='SJT'){ alert('Meta.kind must be SJT.'); return false; }
+      const fmt = String(meta.format||'').toUpperCase();
+      if(!['MULTI_SELECT','YES_NO','SINGLE_BEST'].includes(fmt)){ alert('SJT format must be MULTI_SELECT / YES_NO / SINGLE_BEST.'); return false; }
+      if(!/^T(0[1-9]|1[0-2])$/i.test(String(meta.trait||''))){ alert('SJT trait must be T01..T12.'); return false; }
+
+      if(fmt==='MULTI_SELECT'){
+        if(qtype!=='MULTI'){ alert('SJT MULTI_SELECT must use QType = MULTI.'); return false; }
+        const vals = readVals('en');
+        if(vals.length<2 || vals.length>8){ alert('SJT MULTI_SELECT must have 2–8 options.'); return false; }
+        if(!ensureSameValuesAcrossLocales(vals)) return false;
+        if(!isTagMapComplete(vals, meta.tagByValue)){ alert('SJT MULTI_SELECT tagByValue must cover all values with E/O/X.'); return false; }
+
+      } else if(fmt==='YES_NO'){
+        if(qtype!=='SINGLE'){ alert('SJT YES_NO must use QType = SINGLE.'); return false; }
+        const vals = readValsLower('en');
+        if(!arrEq(vals, ['yes','no'])){ alert('SJT YES_NO options must be exactly yes/no.'); return false; }
+        if(!ensureSameValuesAcrossLocales(['yes','no'])) return false;
+        const cv = String(meta.correctValue||'').toLowerCase();
+        if(!['yes','no'].includes(cv)){ alert('SJT YES_NO correctValue must be yes or no.'); return false; }
+
+      } else if(fmt==='SINGLE_BEST'){
+        if(qtype!=='SINGLE'){ alert('SJT SINGLE_BEST must use QType = SINGLE.'); return false; }
+        const vals = readVals('en');
+        if(vals.length<2){ alert('SJT SINGLE_BEST must have at least 2 options.'); return false; }
+        if(!isLettersAtoH(vals)){ alert('SJT SINGLE_BEST values must be letters a…h.'); return false; }
+        if(!ensureSameValuesAcrossLocales(vals)) return false;
+        if(!vals.includes(String(meta.correctValue||''))){ alert('SJT SINGLE_BEST correctValue must be one of the option values.'); return false; }
+      }
+    }
+
+    // set hidden options JSONs after validation
     document.getElementById('enOptionsJson').value = optionsJsonFromCard(document.querySelector('.card.locale[data-locale="en"]'));
     document.getElementById('hiOptionsJson').value = optionsJsonFromCard(document.querySelector('.card.locale[data-locale="hi"]'));
     document.getElementById('mrOptionsJson').value = optionsJsonFromCard(document.querySelector('.card.locale[data-locale="mr"]'));
-    return true; // allow submit
-  }
-  function beforeDelete(){
-    syncSecret();
-    return confirm('Delete this question permanently?');
+    return true;
   }
 
-  // --- load existing for edit ---
-  async function loadQuestion(){
+  function clearAll(){ location.href = '/admin/questions'; }
+
+  // --- boot ---
+  (function boot(){
+    const saved = sessionStorage.getItem('ADMIN_SECRET');
+    const urlParams = new URLSearchParams(location.search);
+    const secretFromUrl = urlParams.get('secret');
+    if (secretFromUrl) { secretEl.value = secretFromUrl; }
+    else if (saved) { secretEl.value = saved; }
     syncSecret();
-    const qkey = document.getElementById('loadQkey').value.trim();
-    if(!qkey){ alert('Enter qkey'); return; }
-    const params = new URLSearchParams({ qkey, secret: secretEl.value });
+
+    // defaults
+    fillMetaIpip();
+    addLikert(document.querySelector('.card.locale[data-locale="en"] .btn.out'), 'en');
+    addLikert(document.querySelector('.card.locale[data-locale="hi"] .btn.out'), 'hi');
+    addLikert(document.querySelector('.card.locale[data-locale="mr"] .btn.out'), 'mr');
+    rebuildPreview();
+
+    const qFromUrl  = urlParams.get('qkey') || urlParams.get('edit');
+    if (qFromUrl) {
+      if (secretEl.value) { loadExisting(qFromUrl); }
+      else { secretEl.addEventListener('change', ()=>{ if(secretEl.value) loadExisting(qFromUrl); }, {once:true}); }
+    }
+  })();
+
+  // --- load existing for edit (requires secret) ---
+  async function loadExisting(qkey){
+    const sec = (document.getElementById('secret').value || '').trim();
+    if(!sec){ return; }
+    const params = new URLSearchParams({ qkey, secret: sec });
     const res = await fetch(`/admin/questions/load?`+params.toString());
     if(!res.ok){ alert('Load failed: '+res.status); return; }
     const dto = await res.json();
+
+    document.getElementById('modeTag').style.display = 'inline-block';
+    document.getElementById('modeTag').textContent = 'Editing ' + (dto.qkey || '');
 
     // core
     document.getElementById('qkey').value = dto.qkey || '';
@@ -387,36 +608,18 @@
     setOptionsFromJson(document.querySelector('.card.locale[data-locale="hi"]'), dto.hiOptionsJson || '[]');
     setOptionsFromJson(document.querySelector('.card.locale[data-locale="mr"]'), dto.mrOptionsJson || '[]');
 
-    // copy qkey into delete box
-    document.getElementById('deleteQkey').value = dto.qkey || '';
+    // if MULTI_SELECT, show and sync tags table from meta
+    try{
+      const m = JSON.parse(dto.metaJson||'{}');
+      if (m && m.kind==='SJT' && m.format==='MULTI_SELECT') {
+        sjtFormatEl.value='MULTI_SELECT';
+        showSjtTags();
+        tagsSync();
+      }
+    }catch(_){}
 
     rebuildPreview();
   }
-
-  function clearAll(){ location.href = '/admin/questions'; }
-
-  // --- boot defaults ---
-  fillMetaIpip();
-  addLikert(document.querySelector('.card.locale[data-locale="en"] .btn.out'), 'en');
-  addLikert(document.querySelector('.card.locale[data-locale="hi"] .btn.out'), 'hi');
-  addLikert(document.querySelector('.card.locale[data-locale="mr"] .btn.out'), 'mr');
-  rebuildPreview();
 </script>
-
-<script>
-  (function(){
-    const p = new URLSearchParams(location.search);
-    const q = p.get('qkey');
-    if(q){
-      const loadBox = document.getElementById('loadQkey');
-      if (loadBox) loadBox.value = q;
-      const sec = document.getElementById('secret');
-      if (sec) sec.focus();
-      // Note: we do NOT auto-load because the secret is needed; after typing the secret, click "Load".
-    }
-  })();
-</script>
-
-
 </body>
 </html>

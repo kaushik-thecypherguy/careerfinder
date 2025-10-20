@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="mr" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>आपल्याबद्दल • पात्रता</title>
+  <style>
+    :root{--bg:#f8fafc;--card:#fff;--text:#0f172a;--muted:#64748b;--border:#e2e8f0;--accent:#2563eb;--accent-700:#1d4ed8}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,-apple-system,Segoe UI,Roboto,Arial}
+    .wrap{max-width:960px;margin:28px auto;padding:0 16px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px}
+    h1{margin:0 0 6px;font-size:1.35rem}
+    p.lead{margin:0 0 16px;color:var(--muted)}
+    .q{padding:12px 0;border-bottom:1px solid var(--border)} .q:last-child{border-bottom:0}
+    .q h3{margin:0 0 8px;font-size:1.02rem}
+    .opt{display:flex;align-items:center;gap:10px;margin:6px 0}
+    .opt input{accent-color:var(--accent)}
+    .actions{display:flex;gap:12px;margin-top:18px;align-items:center;flex-wrap:wrap}
+    .btn{padding:10px 16px;border-radius:12px;border:1px solid var(--accent);background:var(--accent);color:#fff;font-weight:800;cursor:pointer;text-decoration:none}
+    .btn:hover{background:var(--accent-700)}
+    .muted{color:var(--muted)}
+  </style>
+</head>
+<body>
+<main class="wrap">
+  <section class="card">
+    <h1>आपल्याबद्दल (पात्रता व प्राधान्ये)</h1>
+    <p class="lead">ही उत्तरे नोकरी पात्रता तपासण्यासाठी आहेत — <b>व्यक्तिमत्व/ट्रेट स्कोअरवर परिणाम नाही</b>.</p>
+
+    <form th:action="@{/gating}" th:object="${form}" method="post">
+      <input type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}"/>
+
+      <!-- Q1 -->
+      <div class="q">
+        <h3>Q1. सर्वाधिक शिक्षण? (Highest education)</h3>
+        <div class="opt"><input type="radio" id="q1A" th:name="${'answers['+'gate.Q1'+']'}" value="A" th:checked="${form.answers['gate.Q1']=='A'}"><label for="q1A">औपचारिक शिक्षण नाही (No formal schooling)</label></div>
+        <div class="opt"><input type="radio" id="q1B" th:name="${'answers['+'gate.Q1'+']'}" value="B" th:checked="${form.answers['gate.Q1']=='B'}"><label for="q1B">8वी उत्तीर्ण (8th pass)</label></div>
+        <div class="opt"><input type="radio" id="q1C" th:name="${'answers['+'gate.Q1'+']'}" value="C" th:checked="${form.answers['gate.Q1']=='C'}"><label for="q1C">10वी (SSC/Matric)</label></div>
+        <div class="opt"><input type="radio" id="q1D" th:name="${'answers['+'gate.Q1'+']'}" value="D" th:checked="${form.answers['gate.Q1']=='D'}"><label for="q1D">12वी (HSC)</label></div>
+        <div class="opt"><input type="radio" id="q1E" th:name="${'answers['+'gate.Q1'+']'}" value="E" th:checked="${form.answers['gate.Q1']=='E'}"><label for="q1E">डिप्लोमा / ITI</label></div>
+        <div class="opt"><input type="radio" id="q1F" th:name="${'answers['+'gate.Q1'+']'}" value="F" th:checked="${form.answers['gate.Q1']=='F'}"><label for="q1F">पदवी (Graduate)</label></div>
+        <div class="opt"><input type="radio" id="q1G" th:name="${'answers['+'gate.Q1'+']'}" value="G" th:checked="${form.answers['gate.Q1']=='G'}"><label for="q1G">पदव्युत्तर किंवा जास्त (Post‑graduate+)</label></div>
+      </div>
+
+      <!-- Q2 -->
+      <div class="q">
+        <h3>Q2. आरामात किती वजन उचलू/नेऊ शकता? (Comfortable lifting)</h3>
+        <div class="opt"><input type="radio" id="q2A" th:name="${'answers['+'gate.Q2'+']'}" value="A" th:checked="${form.answers['gate.Q2']=='A'}"><label for="q2A">5 किलोपर्यंत</label></div>
+        <div class="opt"><input type="radio" id="q2B" th:name="${'answers['+'gate.Q2'+']'}" value="B" th:checked="${form.answers['gate.Q2']=='B'}"><label for="q2B">6–10 किलो</label></div>
+        <div class="opt"><input type="radio" id="q2C" th:name="${'answers['+'gate.Q2'+']'}" value="C" th:checked="${form.answers['gate.Q2']=='C'}"><label for="q2C">11–15 किलो</label></div>
+        <div class="opt"><input type="radio" id="q2D" th:name="${'answers['+'gate.Q2'+']'}" value="D" th:checked="${form.answers['gate.Q2']=='D'}"><label for="q2D">16–20 किलो</label></div>
+        <div class="opt"><input type="radio" id="q2E" th:name="${'answers['+'gate.Q2'+']'}" value="E" th:checked="${form.answers['gate.Q2']=='E'}"><label for="q2E">21–25 किलो</label></div>
+        <div class="opt"><input type="radio" id="q2F" th:name="${'answers['+'gate.Q2'+']'}" value="F" th:checked="${form.answers['gate.Q2']=='F'}"><label for="q2F">26 किलो किंवा अधिक</label></div>
+      </div>
+
+      <!-- Q3 -->
+      <div class="q">
+        <h3>Q3. 6–8 तास उभं/चालत काम करणं चालेल? (Standing long periods)</h3>
+        <div class="opt"><input type="radio" id="q3A" th:name="${'answers['+'gate.Q3'+']'}" value="A" th:checked="${form.answers['gate.Q3']=='A'}"><label for="q3A">होय (Yes)</label></div>
+        <div class="opt"><input type="radio" id="q3B" th:name="${'answers['+'gate.Q3'+']'}" value="B" th:checked="${form.answers['gate.Q3']=='B'}"><label for="q3B">नाही (No)</label></div>
+      </div>
+
+      <!-- Q4 -->
+      <div class="q">
+        <h3>Q4. नाईट/रोटेशनल शिफ्ट चालेल? (Night/rotational shifts)</h3>
+        <div class="opt"><input type="radio" id="q4A" th:name="${'answers['+'gate.Q4'+']'}" value="A" th:checked="${form.answers['gate.Q4']=='A'}"><label for="q4A">होय</label></div>
+        <div class="opt"><input type="radio" id="q4B" th:name="${'answers['+'gate.Q4'+']'}" value="B" th:checked="${form.answers['gate.Q4']=='B'}"><label for="q4B">नाही</label></div>
+      </div>
+
+      <!-- Q5 -->
+      <div class="q">
+        <h3>Q5. विकेंडला काम, इतर दिवशी सुटी? (Weekends OK)</h3>
+        <div class="opt"><input type="radio" id="q5A" th:name="${'answers['+'gate.Q5'+']'}" value="A" th:checked="${form.answers['gate.Q5']=='A'}"><label for="q5A">होय</label></div>
+        <div class="opt"><input type="radio" id="q5B" th:name="${'answers['+'gate.Q5'+']'}" value="B" th:checked="${form.answers['gate.Q5']=='B'}"><label for="q5B">नाही</label></div>
+      </div>
+
+      <!-- Q6 -->
+      <div class="q">
+        <h3>Q6. एक‑मार्ग कमाल प्रवास अंतर? (Max one‑way commute)</h3>
+        <div class="opt"><input type="radio" id="q6A" th:name="${'answers['+'gate.Q6'+']'}" value="A" th:checked="${form.answers['gate.Q6']=='A'}"><label for="q6A">5 किमीपर्यंत</label></div>
+        <div class="opt"><input type="radio" id="q6B" th:name="${'answers['+'gate.Q6'+']'}" value="B" th:checked="${form.answers['gate.Q6']=='B'}"><label for="q6B">10 किमीपर्यंत</label></div>
+        <div class="opt"><input type="radio" id="q6C" th:name="${'answers['+'gate.Q6'+']'}" value="C" th:checked="${form.answers['gate.Q6']=='C'}"><label for="q6C">15 किमीपर्यंत</label></div>
+        <div class="opt"><input type="radio" id="q6D" th:name="${'answers['+'gate.Q6'+']'}" value="D" th:checked="${form.answers['gate.Q6']=='D'}"><label for="q6D">20 किमीपर्यंत</label></div>
+        <div class="opt"><input type="radio" id="q6E" th:name="${'answers['+'gate.Q6'+']'}" value="E" th:checked="${form.answers['gate.Q6']=='E'}"><label for="q6E">21–30 किमी</label></div>
+        <div class="opt"><input type="radio" id="q6F" th:name="${'answers['+'gate.Q6'+']'}" value="F" th:checked="${form.answers['gate.Q6']=='F'}"><label for="q6F">30 किमीपेक्षा जास्त</label></div>
+      </div>
+
+      <!-- Q7 -->
+      <div class="q">
+        <h3>Q7. स्वतःचा स्मार्टफोन व रोज अॅप्स वापर? (Smartphone & apps)</h3>
+        <div class="opt"><input type="radio" id="q7A" th:name="${'answers['+'gate.Q7'+']'}" value="A" th:checked="${form.answers['gate.Q7']=='A'}"><label for="q7A">होय</label></div>
+        <div class="opt"><input type="radio" id="q7B" th:name="${'answers['+'gate.Q7'+']'}" value="B" th:checked="${form.answers['gate.Q7']=='B'}"><label for="q7B">नाही</label></div>
+      </div>
+
+      <!-- Q8 -->
+      <div class="q">
+        <h3>Q8. संगणक/ऑफिस बेसिक्स? (Computer basics)</h3>
+        <div class="opt"><input type="radio" id="q8A" th:name="${'answers['+'gate.Q8'+']'}" value="A" th:checked="${form.answers['gate.Q8']=='A'}"><label for="q8A">नाही (None)</label></div>
+        <div class="opt"><input type="radio" id="q8B" th:name="${'answers['+'gate.Q8'+']'}" value="B" th:checked="${form.answers['gate.Q8']=='B'}"><label for="q8B">बेसिक (Basic)</label></div>
+        <div class="opt"><input type="radio" id="q8C" th:name="${'answers['+'gate.Q8'+']'}" value="C" th:checked="${form.answers['gate.Q8']=='C'}"><label for="q8C">सोयीची (Comfortable)</label></div>
+        <div class="opt"><input type="radio" id="q8D" th:name="${'answers['+'gate.Q8'+']'}" value="D" th:checked="${form.answers['gate.Q8']=='D'}"><label for="q8D">प्रगत (Advanced)</label></div>
+      </div>
+
+      <!-- Q9 -->
+      <div class="q">
+        <h3>Q9. इंग्रजी पातळी? (English level)</h3>
+        <div class="opt"><input type="radio" id="q9A" th:name="${'answers['+'gate.Q9'+']'}" value="A" th:checked="${form.answers['gate.Q9']=='A'}"><label for="q9A">नाही (None)</label></div>
+        <div class="opt"><input type="radio" id="q9B" th:name="${'answers['+'gate.Q9'+']'}" value="B" th:checked="${form.answers['gate.Q9']=='B'}"><label for="q9B">फक्त वाचन (Basic reading)</label></div>
+        <div class="opt"><input type="radio" id="q9C" th:name="${'answers['+'gate.Q9'+']'}" value="C" th:checked="${form.answers['gate.Q9']=='C'}"><label for="q9C">वाचन + बोलणे (Reading + speaking)</label></div>
+        <div class="opt"><input type="radio" id="q9D" th:name="${'answers['+'gate.Q9'+']'}" value="D" th:checked="${form.answers['gate.Q9']=='D'}"><label for="q9D">सुविहित/फ्लुएंट (Comfortable/fluent)</label></div>
+      </div>
+
+      <!-- Q10 -->
+      <div class="q">
+        <h3>Q10. स्थानिक भाषा बोलणे? (Local language)</h3>
+        <div class="opt"><input type="radio" id="q10A" th:name="${'answers['+'gate.Q10'+']'}" value="A" th:checked="${form.answers['gate.Q10']=='A'}"><label for="q10A">नाही (Do not speak)</label></div>
+        <div class="opt"><input type="radio" id="q10B" th:name="${'answers['+'gate.Q10'+']'}" value="B" th:checked="${form.answers['gate.Q10']=='B'}"><label for="q10B">बेसिक (Basic)</label></div>
+        <div class="opt"><input type="radio" id="q10C" th:name="${'answers['+'gate.Q10'+']'}" value="C" th:checked="${form.answers['gate.Q10']=='C'}"><label for="q10C">चांगले (Good)</label></div>
+        <div class="opt"><input type="radio" id="q10D" th:name="${'answers['+'gate.Q10'+']'}" value="D" th:checked="${form.answers['gate.Q10']=='D'}"><label for="q10D">फ्लुएंट (Fluent)</label></div>
+      </div>
+
+      <!-- Q11 -->
+      <div class="q">
+        <h3>Q11. Aadhaar/PAN/बँक/अ‍ॅड्रेस प्रूफ? (IDs & bank docs)</h3>
+        <div class="opt"><input type="radio" id="q11A" th:name="${'answers['+'gate.Q11'+']'}" value="A" th:checked="${form.answers['gate.Q11']=='A'}"><label for="q11A">होय – तयार (Yes – ready)</label></div>
+        <div class="opt"><input type="radio" id="q11B" th:name="${'answers['+'gate.Q11'+']'}" value="B" th:checked="${form.answers['gate.Q11']=='B'}"><label for="q11B">अंशतः – 1–2 आठवड्यात (Partly)</label></div>
+        <div class="opt"><input type="radio" id="q11C" th:name="${'answers['+'gate.Q11'+']'}" value="C" th:checked="${form.answers['gate.Q11']=='C'}"><label for="q11C">नाही (No)</label></div>
+      </div>
+
+      <!-- Q12 -->
+      <div class="q">
+        <h3>Q12. परवाना स्थिती? (Driving licence)</h3>
+        <div class="opt"><input type="radio" id="q12A" th:name="${'answers['+'gate.Q12'+']'}" value="A" th:checked="${form.answers['gate.Q12']=='A'}"><label for="q12A">नाही (No licence)</label></div>
+        <div class="opt"><input type="radio" id="q12B" th:name="${'answers['+'gate.Q12'+']'}" value="B" th:checked="${form.answers['gate.Q12']=='B'}"><label for="q12B">लर्नर परवाना</label></div>
+        <div class="opt"><input type="radio" id="q12C" th:name="${'answers['+'gate.Q12'+']'}" value="C" th:checked="${form.answers['gate.Q12']=='C'}"><label for="q12C">2‑व्हीलर वैध</label></div>
+        <div class="opt"><input type="radio" id="q12D" th:name="${'answers['+'gate.Q12'+']'}" value="D" th:checked="${form.answers['gate.Q12']=='D'}"><label for="q12D">LMV/कार वैध</label></div>
+        <div class="opt"><input type="radio" id="q12E" th:name="${'answers['+'gate.Q12'+']'}" value="E" th:checked="${form.answers['gate.Q12']=='E'}"><label for="q12E">HMV/कमर्शियल वैध</label></div>
+      </div>
+
+      <!-- Q13 -->
+      <div class="q">
+        <h3>Q13. 2‑व्हीलर उपलब्ध? (Two‑wheeler access)</h3>
+        <div class="opt"><input type="radio" id="q13A" th:name="${'answers['+'gate.Q13'+']'}" value="A" th:checked="${form.answers['gate.Q13']=='A'}"><label for="q13A">होय</label></div>
+        <div class="opt"><input type="radio" id="q13B" th:name="${'answers['+'gate.Q13'+']'}" value="B" th:checked="${form.answers['gate.Q13']=='B'}"><label for="q13B">नाही</label></div>
+      </div>
+
+      <!-- Q14 -->
+      <div class="q">
+        <h3>Q14. PSARA प्रमाणपत्र? (Security roles)</h3>
+        <div class="opt"><input type="radio" id="q14A" th:name="${'answers['+'gate.Q14'+']'}" value="A" th:checked="${form.answers['gate.Q14']=='A'}"><label for="q14A">वैध PSARA</label></div>
+        <div class="opt"><input type="radio" id="q14B" th:name="${'answers['+'gate.Q14'+']'}" value="B" th:checked="${form.answers['gate.Q14']=='B'}"><label for="q14B">ट्रेनिंग पूर्ण – सर्टिफिकेट प्रलंबित</label></div>
+        <div class="opt"><input type="radio" id="q14C" th:name="${'answers['+'gate.Q14'+']'}" value="C" th:checked="${form.answers['gate.Q14']=='C'}"><label for="q14C">PSARA नाही</label></div>
+      </div>
+
+      <!-- Q15 -->
+      <div class="q">
+        <h3>Q15. AEP स्थिती? (Airport Entry Permit)</h3>
+        <div class="opt"><input type="radio" id="q15A" th:name="${'answers['+'gate.Q15'+']'}" value="A" th:checked="${form.answers['gate.Q15']=='A'}"><label for="q15A">AEP आहे</label></div>
+        <div class="opt"><input type="radio" id="q15B" th:name="${'answers['+'gate.Q15'+']'}" value="B" th:checked="${form.answers['gate.Q15']=='B'}"><label for="q15B">नाही; स्पॉन्सर असल्यास अर्ज करू (Willing)</label></div>
+        <div class="opt"><input type="radio" id="q15C" th:name="${'answers['+'gate.Q15'+']'}" value="C" th:checked="${form.answers['gate.Q15']=='C'}"><label for="q15C">नाही; अर्ज करणार नाही (Not willing)</label></div>
+      </div>
+
+      <!-- Q16 -->
+      <div class="q">
+        <h3>Q16. पोलीस/कंपनी बॅकग्राउंड तपासणीला तयार? (Background check)</h3>
+        <div class="opt"><input type="radio" id="q16A" th:name="${'answers['+'gate.Q16'+']'}" value="A" th:checked="${form.answers['gate.Q16']=='A'}"><label for="q16A">होय – व अडचण अपेक्षित नाही</label></div>
+        <div class="opt"><input type="radio" id="q16B" th:name="${'answers['+'gate.Q16'+']'}" value="B" th:checked="${form.answers['gate.Q16']=='B'}"><label for="q16B">निश्चित नाही (Unsure)</label></div>
+        <div class="opt"><input type="radio" id="q16C" th:name="${'answers['+'gate.Q16'+']'}" value="C" th:checked="${form.answers['gate.Q16']=='C'}"><label for="q16C">नाही</label></div>
+      </div>
+
+      <!-- Q17 -->
+      <div class="q">
+        <h3>Q17. दृष्टि (चष्मा/लेन्स चालेल) (Vision)</h3>
+        <div class="opt"><input type="radio" id="q17A" th:name="${'answers['+'gate.Q17'+']'}" value="A" th:checked="${form.answers['gate.Q17']=='A'}"><label for="q17A">सामान्य/योग्य (Normal)</label></div>
+        <div class="opt"><input type="radio" id="q17B" th:name="${'answers['+'gate.Q17'+']'}" value="B" th:checked="${form.answers['gate.Q17']=='B'}"><label for="q17B">लक्षणीय समस्या (Significant issues)</label></div>
+        <div class="opt"><input type="radio" id="q17C" th:name="${'answers['+'gate.Q17'+']'}" value="C" th:checked="${form.answers['gate.Q17']=='C'}"><label for="q17C">माहित नाही (Not sure)</label></div>
+      </div>
+
+      <!-- Q18 -->
+      <div class="q">
+        <h3>Q18. रंग ओळख (Colour vision)</h3>
+        <div class="opt"><input type="radio" id="q18A" th:name="${'answers['+'gate.Q18'+']'}" value="A" th:checked="${form.answers['gate.Q18']=='A'}"><label for="q18A">सामान्य (Normal)</label></div>
+        <div class="opt"><input type="radio" id="q18B" th:name="${'answers['+'gate.Q18'+']'}" value="B" th:checked="${form.answers['gate.Q18']=='B'}"><label for="q18B">कमतरता (Deficiency)</label></div>
+        <div class="opt"><input type="radio" id="q18C" th:name="${'answers['+'gate.Q18'+']'}" value="C" th:checked="${form.answers['gate.Q18']=='C'}"><label for="q18C">माहित नाही (Not sure)</label></div>
+      </div>
+
+      <!-- Q19 -->
+      <div class="q">
+        <h3>Q19. उंची? (Height)</h3>
+        <div class="opt"><input type="radio" id="q19A" th:name="${'answers['+'gate.Q19'+']'}" value="A" th:checked="${form.answers['gate.Q19']=='A'}"><label for="q19A">155 सेमीपेक्षा कमी</label></div>
+        <div class="opt"><input type="radio" id="q19B" th:name="${'answers['+'gate.Q19'+']'}" value="B" th:checked="${form.answers['gate.Q19']=='B'}"><label for="q19B">155–159 सेमी</label></div>
+        <div class="opt"><input type="radio" id="q19C" th:name="${'answers['+'gate.Q19'+']'}" value="C" th:checked="${form.answers['gate.Q19']=='C'}"><label for="q19C">160–164 सेमी</label></div>
+        <div class="opt"><input type="radio" id="q19D" th:name="${'answers['+'gate.Q19'+']'}" value="D" th:checked="${form.answers['gate.Q19']=='D'}"><label for="q19D">165–169 सेमी</label></div>
+        <div class="opt"><input type="radio" id="q19E" th:name="${'answers['+'gate.Q19'+']'}" value="E" th:checked="${form.answers['gate.Q19']=='E'}"><label for="q19E">170 सेमी किंवा अधिक</label></div>
+      </div>
+
+      <!-- Q20 -->
+      <div class="q">
+        <h3>Q20. लसीकरणाचा पुरावा देऊ शकता? (Vaccination proof)</h3>
+        <div class="opt"><input type="radio" id="q20A" th:name="${'answers['+'gate.Q20'+']'}" value="A" th:checked="${form.answers['gate.Q20']=='A'}"><label for="q20A">होय – दस्तऐवज आहेत</label></div>
+        <div class="opt"><input type="radio" id="q20B" th:name="${'answers['+'gate.Q20'+']'}" value="B" th:checked="${form.answers['gate.Q20']=='B'}"><label for="q20B">अंशतः – काही आहेत</label></div>
+        <div class="opt"><input type="radio" id="q20C" th:name="${'answers['+'gate.Q20'+']'}" value="C" th:checked="${form.answers['gate.Q20']=='C'}"><label for="q20C">नाही</label></div>
+      </div>
+
+      <!-- Q21 -->
+      <div class="q">
+        <h3>Q21. सेफ्टी इंडक्शन/बेसिक ट्रेनिंग झाले? (Safety induction)</h3>
+        <div class="opt"><input type="radio" id="q21A" th:name="${'answers['+'gate.Q21'+']'}" value="A" th:checked="${form.answers['gate.Q21']=='A'}"><label for="q21A">होय</label></div>
+        <div class="opt"><input type="radio" id="q21B" th:name="${'answers['+'gate.Q21'+']'}" value="B" th:checked="${form.answers['gate.Q21']=='B'}"><label for="q21B">नाही</label></div>
+      </div>
+
+      <!-- Q22 -->
+      <div class="q">
+        <h3>Q22. फील्ड ट्रॅव्हल/शहरांतर्गत भेटी चालतील? (Field travel)</h3>
+        <div class="opt"><input type="radio" id="q22A" th:name="${'answers['+'gate.Q22'+']'}" value="A" th:checked="${form.answers['gate.Q22']=='A'}"><label for="q22A">होय</label></div>
+        <div class="opt"><input type="radio" id="q22B" th:name="${'answers['+'gate.Q22'+']'}" value="B" th:checked="${form.answers['gate.Q22']=='B'}"><label for="q22B">नाही</label></div>
+      </div>
+
+      <!-- Q23 -->
+      <div class="q">
+        <h3>Q23. उंचीवर काम (सेफ्टी गिअरसोबत) ठीक? (Work at heights)</h3>
+        <div class="opt"><input type="radio" id="q23A" th:name="${'answers['+'gate.Q23'+']'}" value="A" th:checked="${form.answers['gate.Q23']=='A'}"><label for="q23A">होय</label></div>
+        <div class="opt"><input type="radio" id="q23B" th:name="${'answers['+'gate.Q23'+']'}" value="B" th:checked="${form.answers['gate.Q23']=='B'}"><label for="q23B">नाही</label></div>
+      </div>
+
+      <!-- Q24 -->
+      <div class="q">
+        <h3>Q24. टायपिंग स्पीड (इंग्रजी) WPM? (Typing speed)</h3>
+        <div class="opt"><input type="radio" id="q24A" th:name="${'answers['+'gate.Q24'+']'}" value="A" th:checked="${form.answers['gate.Q24']=='A'}"><label for="q24A">0–15</label></div>
+        <div class="opt"><input type="radio" id="q24B" th:name="${'answers['+'gate.Q24'+']'}" value="B" th:checked="${form.answers['gate.Q24']=='B'}"><label for="q24B">16–25</label></div>
+        <div class="opt"><input type="radio" id="q24C" th:name="${'answers['+'gate.Q24'+']'}" value="C" th:checked="${form.answers['gate.Q24']=='C'}"><label for="q24C">26–35</label></div>
+        <div class="opt"><input type="radio" id="q24D" th:name="${'answers['+'gate.Q24'+']'}" value="D" th:checked="${form.answers['gate.Q24']=='D'}"><label for="q24D">36–45</label></div>
+        <div class="opt"><input type="radio" id="q24E" th:name="${'answers['+'gate.Q24'+']'}" value="E" th:checked="${form.answers['gate.Q24']=='E'}"><label for="q24E">46–60</label></div>
+        <div class="opt"><input type="radio" id="q24F" th:name="${'answers['+'gate.Q24'+']'}" value="F" th:checked="${form.answers['gate.Q24']=='F'}"><label for="q24F">60+ (More than 60)</label></div>
+      </div>
+
+      <div class="actions">
+        <button class="btn" type="submit">सेव्ह करा आणि पुढे जा (Save & Continue)</button>
+        <span class="muted">Language: <b th:text="${session.uiLang != null ? session.uiLang : 'mr'}">mr</b></span>
+      </div>
+    </form>
+  </section>
+</main>
+</body>
+</html>

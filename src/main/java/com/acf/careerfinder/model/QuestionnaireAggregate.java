@@ -35,4 +35,3 @@ public class QuestionnaireAggregate {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 }
-

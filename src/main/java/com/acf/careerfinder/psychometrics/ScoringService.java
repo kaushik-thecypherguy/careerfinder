@@ -11,17 +11,19 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.acf.careerfinder.psychometrics.Domain.*;
-import static com.acf.careerfinder.psychometrics.Trait.*;
 import static com.acf.careerfinder.psychometrics.ScoringConfig.*;
+import static com.acf.careerfinder.psychometrics.Trait.*;
 
 /**
- * Computes TraitFinal(0–100) from:
- *  - IPIP items (Likert 1..5, reverse-key where keyed = "-")
- *  - SJT items (MULTI_SELECT normalized to 0..4; YES_NO/MCQ => 0 or 4)
- *  - OCEAN -> 12 traits via OCEAN_TO_TRAIT matrix
+ * Computes TraitFinal(0–100) strictly from:
+ *  - IPIP (Likert 1..5, reverse-key where keyed="-")
+ *  - SJT  (MULTI_SELECT normalized; YES_NO/SINGLE_BEST => 0 or full scale)
+ *  - OCEAN -> 12 traits (matrix)
  *  - Blend: W_IPIP * from-IPIP + W_SJT * from-SJT
  *
- * No controller or DB writes here. Pure read + math.
+ * Items are ignored unless:
+ *   - sectionKey ∈ {"ipip","sjt"}
+ *   - meta.kind ∈ {"IPIP","SJT"} and required meta fields are valid.
  */
 @Service
 public class ScoringService {
@@ -51,52 +53,122 @@ public class ScoringService {
         EnumMap<Trait, List<Double>> sjtBuckets = new EnumMap<>(Trait.class);
         for (Trait t : Trait.values()) sjtBuckets.put(t, new ArrayList<>());
 
-        // Optional: keep per-item diagnostics if you want later
-        // Map<String, Double> sjtItem0to4 = new HashMap<>();
-
-        // 3) Walk each active item
+        // 3) Walk each active item (strict filtering)
         for (QItem qi : items) {
+            String sect = qi.getSectionKey();
+            if (sect == null || !(sect.equalsIgnoreCase("ipip") || sect.equalsIgnoreCase("sjt"))) {
+                continue; // hard block anything not IPIP/SJT
+            }
+
             String metaJson = qi.getMetaJson();
             if (metaJson == null || metaJson.isBlank()) continue;
 
-            String qkey = qi.getQkey();
-            String val = answers.get(qkey); // can be null
             JsonNode meta = parse(metaJson);
             if (meta == null) continue;
 
-            String kind = text(meta, "kind");           // "IPIP" | "SJT"
+            String kind = text(meta, "kind"); // "IPIP" | "SJT"
             if ("IPIP".equalsIgnoreCase(kind)) {
-                handleIpip(meta, val, ipipSum, ipipCount);
+                // Expected: SINGLE Likert 1..5, domain in O/C/E/A/ES
+                if (qi.getQtype() != null && qi.getQtype() != QItem.QType.SINGLE) continue;
+                String domStr = text(meta, "domain");
+                Domain dom = parseDomain(domStr);
+                if (dom == null) continue;
+
+                String qkey = qi.getQkey();
+                String val = answers.get(qkey);
+                Integer likert = parseLikert(val);  // 1..5 or null
+                if (likert == null) continue;
+
+                boolean keyedPos = !"-".equals(text(meta, "keyed")); // default "+"
+                int scored = keyedPos ? likert : (6 - likert);
+                ipipSum.put(dom, ipipSum.get(dom) + scored);
+                ipipCount.put(dom, ipipCount.get(dom) + 1);
+
             } else if ("SJT".equalsIgnoreCase(kind)) {
-                handleSjt(meta, val, sjtBuckets);
+                // Expected: MULTI_SELECT|YES_NO|SINGLE_BEST with trait "Txx"
+                String fmt = text(meta, "format");
+                Trait trait = parseTrait(text(meta, "trait"));
+                if (trait == null) continue;
+
+                String qkey = qi.getQkey();
+                String answer = answers.get(qkey);
+                double item0toScale = 0.0;
+
+                if ("MULTI_SELECT".equalsIgnoreCase(fmt)) {
+                    if (qi.getQtype() != null && qi.getQtype() != QItem.QType.MULTI) continue;
+                    Map<String, String> tagMap = parseTagMap(meta.get("tagByValue"));
+                    if (tagMap == null || tagMap.isEmpty()) continue;
+
+                    Set<String> selected = splitCsv(answer);
+                    int eTotal = 0, oTotal = 0, points = 0;
+
+                    for (String v : tagMap.keySet()) {
+                        String tag = tagMap.get(v);
+                        if ("E".equalsIgnoreCase(tag)) eTotal++;
+                        if ("O".equalsIgnoreCase(tag)) oTotal++;
+                    }
+                    for (String v : selected) {
+                        String tag = tagMap.get(v);
+                        if (tag == null) continue;
+                        switch (tag.toUpperCase(Locale.ROOT)) {
+                            case "E" -> points += SJT_POINTS_E;
+                            case "O" -> points += SJT_POINTS_O;
+                            case "X" -> points += SJT_POINTS_X;
+                        }
+                    }
+                    int denom = (SJT_POINTS_E * eTotal) + (SJT_POINTS_O * oTotal);
+                    if (denom > 0) {
+                        double norm01 = Math.max(points, 0) / (double) denom;
+                        item0toScale = SJT_MULT_SELECT_SCALE * norm01; // 0..4
+                    }
+
+                } else if ("YES_NO".equalsIgnoreCase(fmt) || "SINGLE_BEST".equalsIgnoreCase(fmt)) {
+                    if (qi.getQtype() != null && qi.getQtype() == QItem.QType.MULTI) continue;
+                    String correct = Optional.ofNullable(text(meta, "correctValue")).orElse("");
+                    String given   = Optional.ofNullable(answer).orElse("");
+                    if (!correct.isBlank()) {
+                        item0toScale = correct.equalsIgnoreCase(given) ? SJT_MULT_SELECT_SCALE : 0.0;
+                    }
+                } else {
+                    continue; // unsupported format
+                }
+
+                sjtBuckets.get(trait).add(item0toScale);
             }
+            // else: unknown kind → ignore
         }
 
         // 4) Build profile
         TraitProfile profile = new TraitProfile();
 
-        // 4a) IPIP -> domains 0..100 (dynamic scaling by answered count)
+        // --- 4a) IPIP → domains 0..100 (weighted by answered count) ---
         EnumMap<Domain, Integer> ipipRaw = new EnumMap<>(Domain.class);
-        EnumMap<Domain, Double> ocean0100 = new EnumMap<>(Domain.class);
+        EnumMap<Domain, Double>  ocean0100 = new EnumMap<>(Domain.class);
+        int totalIpipN = 0;
+        double weightedSum = 0.0;
+
         for (Domain d : Domain.values()) {
             int n = ipipCount.get(d);
             int raw = ipipSum.get(d);
             ipipRaw.put(d, raw);
-            double score;
+
+            double pct;
             if (n <= 0) {
-                score = 0.0;
+                pct = 0.0;
             } else {
-                // min = n*1 ; max = n*5 ; range = 4n
-                score = 100.0 * (raw - n) / (4.0 * n);
-                if (score < 0) score = 0;
-                if (score > 100) score = 100;
+                // min n*1, max n*5, range 4n ⇒ 0..100
+                pct = 100.0 * (raw - n) / (4.0 * n);
+                pct = clamp100(pct);
+                weightedSum += pct * n;
+                totalIpipN += n;
             }
-            ocean0100.put(d, score);
+            ocean0100.put(d, pct);
         }
         profile.ipipRaw().putAll(ipipRaw);
         profile.ocean0to100().putAll(ocean0100);
+        profile.setIpipOverall0to100(totalIpipN > 0 ? weightedSum / totalIpipN : 0.0);
 
-        // 4b) OCEAN -> 12 traits (from IPIP)
+        // --- 4b) OCEAN -> 12 traits (from IPIP) ---
         EnumMap<Trait, Double> traitsFromIpip = new EnumMap<>(Trait.class);
         for (int r = 0; r < Trait.values().length; r++) {
             double sum = 0.0;
@@ -104,119 +176,74 @@ public class ScoringService {
                 double dVal = ocean0100.getOrDefault(DOMS[c], 0.0);
                 sum += OCEAN_TO_TRAIT[r][c] * dVal;
             }
-            traitsFromIpip.put(Trait.values()[r], clamp01(sum));
+            traitsFromIpip.put(Trait.values()[r], clamp100(sum));
         }
         profile.traitFromIpip0to100().putAll(traitsFromIpip);
 
-        // 4c) SJT -> 12 traits (average items 0..4 => ×25 => 0..100)
+        // --- 4c) SJT -> 12 traits (mean item 0..scale ⇒ 0..100) ---
         EnumMap<Trait, Double> traitSjt = new EnumMap<>(Trait.class);
+        int totalSjtItems = 0;
+        double sumItems0toScale = 0.0;
+
         for (Trait t : Trait.values()) {
             List<Double> arr = sjtBuckets.get(t);
-            double s = arr.isEmpty() ? 0.0 : arr.stream().mapToDouble(d -> d).average().orElse(0.0);
-            double out0100 = 25.0 * s; // 0..4 -> 0..100
-            traitSjt.put(t, clamp01(out0100));
+            double mean = (arr == null || arr.isEmpty())
+                    ? 0.0
+                    : arr.stream().mapToDouble(d -> d).average().orElse(0.0); // 0..scale
+            double out0100 = (100.0 / SJT_MULT_SELECT_SCALE) * mean;
+            out0100 = clamp100(out0100);
+            traitSjt.put(t, out0100);
+
+            if (arr != null) {
+                totalSjtItems += arr.size();
+                sumItems0toScale += arr.stream().mapToDouble(d -> d).sum();
+            }
         }
         profile.traitSjt0to100().putAll(traitSjt);
+        profile.setSjtOverall0to100(
+                totalSjtItems > 0 ? clamp100((100.0 / SJT_MULT_SELECT_SCALE) * (sumItems0toScale / totalSjtItems)) : 0.0
+        );
 
-        // 4d) Blend to final
+        // --- 4d) Blend final per-trait + composite ---
         EnumMap<Trait, Double> traitFinal = new EnumMap<>(Trait.class);
         for (Trait t : Trait.values()) {
             double a = traitsFromIpip.getOrDefault(t, 0.0);
             double b = traitSjt.getOrDefault(t, 0.0);
             double f = W_IPIP * a + W_SJT * b;
-            traitFinal.put(t, clamp01(f));
+            traitFinal.put(t, clamp100(f));
         }
         profile.traitFinal0to100().putAll(traitFinal);
+
+        double composite = W_IPIP * profile.getIpipOverall0to100()
+                + W_SJT  * profile.getSjtOverall0to100();
+        profile.setComposite0to100(clamp100(composite));
 
         return profile;
     }
 
+    /* -------------------- STATIC label helpers for Thymeleaf -------------------- */
+
+    /** Used from result.html: T(ScoringService).traitLabel(e.key) */
+    public static String traitLabel(Trait t) {
+        return (t == null) ? "" : t.label();
+    }
+
+    /** Used from result.html: T(ScoringService).domainLabel(d.key) */
+    public static String domainLabel(Domain d) {
+        if (d == null) return "";
+        return switch (d) {
+            case O  -> "Openness";
+            case C  -> "Conscientiousness";
+            case E  -> "Extraversion";
+            case A  -> "Agreeableness";
+            case ES -> "Emotional Stability";
+        };
+    }
+
     /* -------------------- Internals -------------------- */
-
-    private static JsonNode parse(String json) {
-        try {
-            return M.readTree(json);
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private static String text(JsonNode n, String key) {
-        JsonNode x = n.get(key);
-        return x == null || x.isNull() ? null : x.asText();
-    }
-
-    private static double clamp01(double x) {
-        if (x < 0) return 0;
-        if (x > 100) return 100;
-        return x;
-    }
-
-    /** IPIP handler: Likert 1..5, reverse if keyed = "-" */
-    private static void handleIpip(JsonNode meta, String answer,
-                                   EnumMap<Domain, Integer> sum,
-                                   EnumMap<Domain, Integer> cnt) {
-        String domStr = text(meta, "domain");  // "O","C","E","A","ES"
-        Domain dom = parseDomain(domStr);
-        if (dom == null) return;
-
-        Integer likert = parseLikert(answer);  // 1..5 or null
-        if (likert == null) return;
-
-        boolean keyedPos = !"-".equals(text(meta, "keyed")); // default "+"
-        int scored = keyedPos ? likert : (6 - likert);
-        sum.put(dom, sum.get(dom) + scored);
-        cnt.put(dom, cnt.get(dom) + 1);
-    }
-
-    /** SJT handler: MULTI_SELECT | YES_NO | SINGLE_BEST */
-    private static void handleSjt(JsonNode meta, String answer,
-                                  EnumMap<Trait, List<Double>> buckets) {
-        Trait trait = parseTrait(text(meta, "trait")); // expects "T06" etc.
-        if (trait == null) return;
-
-        String fmt = text(meta, "format");
-        double item0to4 = 0.0;
-
-        if ("MULTI_SELECT".equalsIgnoreCase(fmt)) {
-            // tags map: { "a":"E", "b":"O", "c":"X", ... }
-            Map<String, String> tagMap = parseTagMap(meta.get("tagByValue"));
-            if (tagMap == null || tagMap.isEmpty()) return;
-
-            Set<String> selected = splitCsv(answer);
-            int eTotal = 0, oTotal = 0, points = 0;
-            for (String v : tagMap.keySet()) {
-                String tag = tagMap.get(v);
-                if ("E".equalsIgnoreCase(tag)) eTotal++;
-                if ("O".equalsIgnoreCase(tag)) oTotal++;
-            }
-            for (String v : selected) {
-                String tag = tagMap.get(v);
-                if (tag == null) continue;
-                switch (tag.toUpperCase(Locale.ROOT)) {
-                    case "E" -> points += 2;
-                    case "O" -> points += 1;
-                    case "X" -> points -= 1;
-                }
-            }
-            int denom = 2 * eTotal + oTotal;
-            if (denom > 0) {
-                double norm = Math.max(points, 0) / (double) denom; // 0..1
-                item0to4 = 4.0 * norm;
-            } else {
-                item0to4 = 0.0;
-            }
-        } else if ("YES_NO".equalsIgnoreCase(fmt) || "SINGLE_BEST".equalsIgnoreCase(fmt)) {
-            String correct = Optional.ofNullable(text(meta, "correctValue")).orElse("");
-            String given = Optional.ofNullable(answer).orElse("");
-            item0to4 = correct.equalsIgnoreCase(given) ? 4.0 : 0.0;
-        } else {
-            return; // unknown SJT format
-        }
-
-        buckets.get(trait).add(item0to4);
-        // sjtItem0to4.put(qkey, item0to4); // if you want per-item logs later
-    }
+    private static JsonNode parse(String json) { try { return M.readTree(json); } catch (Exception e) { return null; } }
+    private static String  text(JsonNode n, String k) { JsonNode x = n.get(k); return (x==null||x.isNull()) ? null : x.asText(); }
+    private static double  clamp100(double v){ return v < 0 ? 0 : (v > 100 ? 100 : v); }
 
     private static Domain parseDomain(String s) {
         if (s == null) return null;
@@ -230,15 +257,14 @@ public class ScoringService {
         };
     }
 
-    /** Trait from code like "T01", "T06" (we ignore suffix). */
+    /** Accepts "T01", "t6", etc. */
     private static Trait parseTrait(String s) {
         if (s == null) return null;
-        String code = s.toUpperCase(Locale.ROOT).replaceAll("[^0-9]", "");
-        if (code.isBlank()) return null;
-        int n = Integer.parseInt(code);
+        String num = s.toUpperCase(Locale.ROOT).replaceAll("[^0-9]", "");
+        if (num.isBlank()) return null;
+        int n = Integer.parseInt(num);
         Trait[] all = Trait.values();
-        if (n >= 1 && n <= all.length) return all[n - 1];
-        return null;
+        return (n >= 1 && n <= all.length) ? all[n - 1] : null;
     }
 
     private static Integer parseLikert(String s) {

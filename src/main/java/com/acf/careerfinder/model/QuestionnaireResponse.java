@@ -3,12 +3,19 @@ package com.acf.careerfinder.model;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(
         name = "questionnaire_responses",
-        uniqueConstraints = @UniqueConstraint(name = "uq_user_question", columnNames = {"user_email", "question_key"})
+        uniqueConstraints = @UniqueConstraint(
+                name = "uq_user_question",
+                columnNames = {"user_email", "question_key"}
+        ),
+        indexes = {
+                @Index(name = "idx_qr_user", columnList = "user_email")
+        }
 )
 public class QuestionnaireResponse {
 
@@ -33,19 +40,24 @@ public class QuestionnaireResponse {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    public QuestionnaireResponse() {}
+    public QuestionnaireResponse() { }
+
     public QuestionnaireResponse(String userEmail, String questionKey) {
         this.userEmail = userEmail;
         this.questionKey = questionKey;
+        this.answerValue = "";
     }
 
     public Long getId() { return id; }
     public String getUserEmail() { return userEmail; }
     public void setUserEmail(String userEmail) { this.userEmail = userEmail; }
+
     public String getQuestionKey() { return questionKey; }
     public void setQuestionKey(String questionKey) { this.questionKey = questionKey; }
+
     public String getAnswerValue() { return answerValue; }
     public void setAnswerValue(String answerValue) { this.answerValue = answerValue; }
+
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 }

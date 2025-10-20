@@ -1,6 +1,7 @@
 package com.acf.careerfinder.admin;
 
 import com.acf.careerfinder.model.QItem;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -9,8 +10,6 @@ import org.springframework.web.bind.annotation.*;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
-import org.springframework.ui.Model;
-import jakarta.servlet.http.HttpSession;
 
 @Controller
 @RequestMapping("/admin/questions")
@@ -27,9 +26,11 @@ public class QuestionAdminController {
     @GetMapping
     public String page(@RequestParam(value = "ok", required = false) String ok,
                        @RequestParam(value = "msg", required = false) String msg,
+                       @RequestParam(value = "qkey", required = false) String qkey,
                        Model model) {
         model.addAttribute("ok", ok);
         model.addAttribute("msg", msg);
+        model.addAttribute("editQkey", qkey); // lets the page auto-load for edit
         return "admin_questions";
     }
 
@@ -39,7 +40,8 @@ public class QuestionAdminController {
                          @RequestParam(value = "secret", required = false) String paramSecret) {
         guard.check(first(hdrSecret, paramSecret));
         service.upsert(dto);
-        return "redirect:/admin/questions?ok=upsert&msg=" + url("Saved " + dto.getQkey());
+        return "redirect:/admin/questions?ok=upsert&msg=" + url("Saved " + dto.getQkey()) +
+                "&qkey=" + url(dto.getQkey());
     }
 
     @PostMapping(path = "/delete", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
@@ -62,13 +64,6 @@ public class QuestionAdminController {
                 .orElseThrow(() -> new IllegalArgumentException("Not found: " + qkey));
     }
 
-    private static String first(String a, String b) {
-        return (a != null && !a.isBlank()) ? a : b;
-    }
-    private static String url(String s) {
-        return URLEncoder.encode(s, StandardCharsets.UTF_8);
-    }
-
     @GetMapping("/list")
     public String list(@RequestParam(value = "lang", required = false) String lang,
                        HttpSession session,
@@ -78,9 +73,15 @@ public class QuestionAdminController {
                 : (String) session.getAttribute("ADMIN_LANG");
         if (L == null) L = "en";
         session.setAttribute("ADMIN_LANG", L);
-
         model.addAttribute("currentLang", L);
         model.addAttribute("rows", service.listRows(L));
         return "admin_questions_list";
+    }
+
+    private static String first(String a, String b) {
+        return (a != null && !a.isBlank()) ? a : b;
+    }
+    private static String url(String s) {
+        return URLEncoder.encode(s, StandardCharsets.UTF_8);
     }
 }

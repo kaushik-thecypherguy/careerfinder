@@ -13,5 +13,3 @@ public interface QuestionnaireResponseRepository extends JpaRepository<Questionn
 }
 
 
-
-

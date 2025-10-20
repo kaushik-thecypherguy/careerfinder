@@ -2,8 +2,8 @@ package com.acf.careerfinder.service;
 
 import com.acf.careerfinder.model.QuestionnaireResponse;
 import com.acf.careerfinder.repository.QuestionnaireResponseRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -11,8 +11,10 @@ import java.util.Map;
 @Service
 public class QuestionnaireService {
 
-    @Autowired private QuestionnaireResponseRepository repo;
+    private final QuestionnaireResponseRepository repo;
+    public QuestionnaireService(QuestionnaireResponseRepository repo) { this.repo = repo; }
 
+    @Transactional
     public void saveAnswers(String email, Map<String, String> answers) {
         if (answers == null) return;
         for (Map.Entry<String, String> e : answers.entrySet()) {
@@ -27,6 +29,7 @@ public class QuestionnaireService {
         }
     }
 
+    @Transactional(readOnly = true)
     public Map<String, String> loadAnswersMap(String email) {
         Map<String, String> map = new LinkedHashMap<>();
         for (QuestionnaireResponse r : repo.findAllByUserEmail(email)) {
@@ -35,5 +38,8 @@ public class QuestionnaireService {
         return map;
     }
 
-    public void deleteAllForUser(String email) { repo.deleteAllByUserEmail(email); }
+    @Transactional
+    public void deleteAllForUser(String email) {
+        repo.deleteAllByUserEmail(email);
+    }
 }

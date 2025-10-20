@@ -1,0 +1,402 @@
+{
+  "version": "1.0",
+  "asOf": "2025-10-18",
+  "notes": "Launch-friendly gates. Omitted fields = Not Required (N/A). Tune per employer as you gather data.",
+  "sectors": [
+
+    { "id": "healthcare_nursing",
+      "req": {
+        "minEdu": 3,
+        "minAge": 18,
+        "needsStandingOk": true,
+        "needsWeekendOk": true,
+        "needsDocs": true,
+        "needsVaccProof": true,
+        "needsEnglishBasic": true,
+        "needsLocalLanguage": true
+      }
+    },
+
+    { "id": "security_services",
+      "req": {
+        "minEdu": 2,
+        "minAge": 18,
+        "needsStandingOk": true,
+        "needsNightOk": true,
+        "needsWeekendOk": true,
+        "needsDocs": true,
+        "needsBGC": true,
+        "needsPSARA": true
+      }
+    },
+
+    { "id": "retail_store_ops",
+      "req": {
+        "minEdu": 2,
+        "needsStandingOk": true,
+        "needsWeekendOk": true,
+        "needsDocs": true,
+        "needsSmartphone": true,
+        "needsLocalLanguage": true,
+        "needsEnglishBasic": true
+      }
+    },
+
+    { "id": "warehouse_logistics",
+      "req": {
+        "minEdu": 2,
+        "minLiftKg": 15,
+        "needsStandingOk": true,
+        "needsWeekendOk": true,
+        "needsDocs": true,
+        "needsSmartphone": true
+      }
+    },
+
+    { "id": "hospitality_hotel",
+      "req": {
+        "minEdu": 2,
+        "needsStandingOk": true,
+        "needsWeekendOk": true,
+        "needsDocs": true,
+        "needsEnglishBasic": true,
+        "needsLocalLanguage": true
+      }
+    },
+
+    { "id": "housekeeping_facilities",
+      "req": {
+        "minEdu": 1,
+        "needsStandingOk": true,
+        "needsWeekendOk": true,
+        "needsDocs": true
+      }
+    },
+
+    { "id": "telecalling_bpo",
+      "req": {
+        "minEdu": 2,
+        "needsComputerBasics": true,
+        "needsEnglishBasic": true,
+        "needsSmartphone": true,
+        "needsDocs": true,
+        "minTypingWPM": 20
+      }
+    },
+
+    { "id": "field_sales_promoter",
+      "req": {
+        "minEdu": 2,
+        "needsFieldTravelOk": true,
+        "needsSmartphone": true,
+        "needs2W": true,
+        "needsDL": true,
+        "needsDocs": true,
+        "needsEnglishBasic": true,
+        "needsLocalLanguage": true
+      }
+    },
+
+    { "id": "delivery_lastmile",
+      "req": {
+        "minEdu": 2,
+        "minAge": 18,
+        "needs2W": true,
+        "needsDL": true,
+        "needsSmartphone": true,
+        "needsWeekendOk": true,
+        "needsDocs": true
+      }
+    },
+
+    { "id": "fnb_service",
+      "req": {
+        "minEdu": 2,
+        "needsStandingOk": true,
+        "needsWeekendOk": true,
+        "needsDocs": true,
+        "needsVaccProof": true
+      }
+    },
+
+    { "id": "restaurant_kitchen_commis",
+      "req": {
+        "minEdu": 2,
+        "needsStandingOk": true,
+        "needsWeekendOk": true,
+        "needsDocs": true,
+        "needsVaccProof": true
+      }
+    },
+
+    { "id": "manufacturing_assembly",
+      "req": {
+        "minEdu": 2,
+        "minLiftKg": 10,
+        "needsStandingOk": true,
+        "needsDocs": true,
+        "needsVaccProof": true
+      }
+    },
+
+    { "id": "automotive_service",
+      "req": {
+        "minEdu": 2,
+        "minLiftKg": 10,
+        "needsStandingOk": true,
+        "needsDocs": true,
+        "needsSmartphone": true
+      }
+    },
+
+    { "id": "electrician_facility",
+      "req": {
+        "minEdu": 2,
+        "needsStandingOk": true,
+        "needsWorkAtHeightOk": true,
+        "needsNormalVision": true,
+        "needsColorVisionOk": true,
+        "needsDocs": true
+      }
+    },
+
+    { "id": "plumbing_sanitation",
+      "req": {
+        "minEdu": 2,
+        "minLiftKg": 10,
+        "needsStandingOk": true,
+        "needsDocs": true
+      }
+    },
+
+    { "id": "ac_refrigeration_tech",
+      "req": {
+        "minEdu": 2,
+        "needsStandingOk": true,
+        "needsWorkAtHeightOk": true,
+        "needsNormalVision": true,
+        "needsDocs": true,
+        "needsSmartphone": true
+      }
+    },
+
+    { "id": "field_technician_appliance",
+      "req": {
+        "minEdu": 2,
+        "needsFieldTravelOk": true,
+        "needsSmartphone": true,
+        "needs2W": true,
+        "needsDL": true,
+        "needsDocs": true
+      }
+    },
+
+    { "id": "construction_helper",
+      "req": {
+        "minEdu": 1,
+        "minLiftKg": 15,
+        "needsStandingOk": true,
+        "needsWorkAtHeightOk": true,
+        "needsDocs": true,
+        "needsVaccProof": true
+      }
+    },
+
+    { "id": "painter_decorator",
+      "req": {
+        "minEdu": 1,
+        "needsWorkAtHeightOk": true,
+        "needsNormalVision": true,
+        "needsColorVisionOk": true,
+        "needsDocs": true
+      }
+    },
+
+    { "id": "beautician_salon",
+      "req": {
+        "minEdu": 2,
+        "needsWeekendOk": true,
+        "needsDocs": true
+      }
+    },
+
+    { "id": "tailoring_garment",
+      "req": {
+        "minEdu": 1,
+        "needsDocs": true
+      }
+    },
+
+    { "id": "textile_machine_operator",
+      "req": {
+        "minEdu": 2,
+        "needsStandingOk": true,
+        "needsNightOk": true,
+        "needsDocs": true
+      }
+    },
+
+    { "id": "agriculture_farm_hand",
+      "req": {
+        "minEdu": 0,
+        "minLiftKg": 15,
+        "needsStandingOk": true,
+        "needsDocs": true
+      }
+    },
+
+    { "id": "dairy_processing",
+      "req": {
+        "minEdu": 2,
+        "needsStandingOk": true,
+        "needsVaccProof": true,
+        "needsDocs": true
+      }
+    },
+
+    { "id": "food_processing_packaging",
+      "req": {
+        "minEdu": 2,
+        "minLiftKg": 10,
+        "needsStandingOk": true,
+        "needsNightOk": true,
+        "needsVaccProof": true,
+        "needsDocs": true
+      }
+    },
+
+    { "id": "pharmacy_assistant",
+      "req": {
+        "minEdu": 3,
+        "needsComputerBasics": true,
+        "needsEnglishBasic": true,
+        "needsDocs": true,
+        "needsVaccProof": true
+      }
+    },
+
+    { "id": "lab_technician_assist",
+      "req": {
+        "minEdu": 3,
+        "needsComputerBasics": true,
+        "needsEnglishBasic": true,
+        "needsNormalVision": true,
+        "needsColorVisionOk": true,
+        "needsVaccProof": true,
+        "needsDocs": true
+      }
+    },
+
+    { "id": "front_office_reception",
+      "req": {
+        "minEdu": 2,
+        "needsComputerBasics": true,
+        "needsEnglishBasic": true,
+        "needsDocs": true
+      }
+    },
+
+    { "id": "data_entry_backoffice",
+      "req": {
+        "minEdu": 2,
+        "needsComputerBasics": true,
+        "needsEnglishBasic": true,
+        "needsDocs": true,
+        "minTypingWPM": 30
+      }
+    },
+
+    { "id": "it_support_helpdesk",
+      "req": {
+        "minEdu": 3,
+        "needsComputerBasics": true,
+        "needsEnglishBasic": true,
+        "needsDocs": true
+      }
+    },
+
+    { "id": "ecommerce_ops",
+      "req": {
+        "minEdu": 2,
+        "needsComputerBasics": true,
+        "needsWeekendOk": true,
+        "needsSmartphone": true,
+        "needsDocs": true
+      }
+    },
+
+    { "id": "customer_service_instore",
+      "req": {
+        "minEdu": 2,
+        "needsStandingOk": true,
+        "needsWeekendOk": true,
+        "needsLocalLanguage": true,
+        "needsEnglishBasic": true,
+        "needsDocs": true
+      }
+    },
+
+    { "id": "banking_field_ops",
+      "req": {
+        "minEdu": 3,
+        "minAge": 18,
+        "needsFieldTravelOk": true,
+        "needsSmartphone": true,
+        "needs2W": true,
+        "needsDL": true,
+        "needsEnglishBasic": true,
+        "needsDocs": true,
+        "needsBGC": true
+      }
+    },
+
+    { "id": "insurance_field_ops",
+      "req": {
+        "minEdu": 3,
+        "needsFieldTravelOk": true,
+        "needsSmartphone": true,
+        "needsDL": true,
+        "needsEnglishBasic": true,
+        "needsDocs": true
+      }
+    },
+
+    { "id": "telecom_field_ops",
+      "req": {
+        "minEdu": 2,
+        "needsFieldTravelOk": true,
+        "needsWorkAtHeightOk": true,
+        "needs2W": true,
+        "needsDL": true,
+        "needsNormalVision": true,
+        "needsColorVisionOk": true,
+        "needsDocs": true
+      }
+    },
+
+    { "id": "airport_ground_ops",
+      "req": {
+        "minEdu": 2,
+        "minAge": 18,
+        "needsNightOk": true,
+        "needsWeekendOk": true,
+        "needsEnglishBasic": true,
+        "needsLocalLanguage": true,
+        "needsDocs": true,
+        "needsVaccProof": true,
+        "needsBGC": true
+      }
+    },
+
+    { "id": "housekeeping_hospital",
+      "req": {
+        "minEdu": 1,
+        "needsStandingOk": true,
+        "needsWeekendOk": true,
+        "needsVaccProof": true,
+        "needsDocs": true
+      }
+    }
+
+  ]
+}
