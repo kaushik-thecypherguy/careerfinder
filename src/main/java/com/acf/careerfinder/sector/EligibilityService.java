@@ -7,75 +7,62 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 
 /**
- * Phase‑7:
- *  (a) derive normalized candidate gating attributes (Cand_*) from gate.Q1..Q24,
- *  (b) evaluate eligibility vs sector gate requirements and return reasons if ineligible,
- *  (c) carry Maharashtra location (gate.DISTRICT) for later chat context; non‑gating.
- *
- * Notes:
- * - MCQ → Cand_* mapping per gating doc (Q1..Q24). Location is non‑gating.  // see doc
+ * Age is taken ONLY from Q26 (gate.Q26_age). We do NOT infer age from the licence.
+ * Min-age is enforced only if age is present AND below the requirement.
  */
 @Service
 public class EligibilityService {
 
-    /** Normalized gating attributes derived from gate.* answers. */
     public static final class Cand {
-        // numeric
-        public Integer edu;          // 0..6 (Q1)
-        public Integer age;          // years (not asked yet; keep null)
-        public Integer heightCm;     // Q19 lower-bound mapping
-        public Integer liftKg;       // Q2 lower-bound mapping
-        public Integer commuteKm;    // Q6 upper-bound mapping
-        public Integer typingWPM;    // Q24 -> 10/20/30/40/55/65
+        public Integer edu;
+        public Integer age;           // Q26; may be null
+        public Integer heightCm;
+        public Integer liftKg;
+        public Integer commuteKm;
+        public Integer typingWPM;
 
-        // booleans
-        public Boolean standingOK;       // Q3
-        public Boolean nightOK;          // Q4
-        public Boolean weekendOK;        // Q5
-        public Boolean fieldTravelOK;    // Q22
-        public Boolean workAtHeightOK;   // Q23
+        public Boolean standingOK;
+        public Boolean nightOK;
+        public Boolean weekendOK;
+        public Boolean fieldTravelOK;
+        public Boolean workAtHeightOK;
 
-        public Boolean smartphone;       // Q7
-        public Boolean hasDocs;          // Q11
-        public Boolean hasDL;            // Q12
-        public Boolean has2W;            // Q13
-        public Boolean hasPSARA;         // Q14
-        public Boolean hasAEP;           // Q15
-        public Boolean bgcOK;            // Q16
+        public Boolean smartphone;
+        public Boolean hasDocs;
+        public Boolean hasDL;         // Q12 only (no age inference)
+        public Boolean has2W;
+        public Boolean hasPSARA;
+        public Boolean hasAEP;
+        public Boolean bgcOK;
 
-        public Boolean englishBasic;     // Q9 (Basic+)
-        public Boolean localLanguage;    // Q10 (Basic+)
-        public Boolean computerBasics;   // Q8 (Basic+)
-        public Boolean normalVision;     // Q17
-        public Boolean colorVisionOK;    // Q18
-        public Boolean vaccProof;        // Q20
-        public Boolean safetyInducted;   // Q21
+        public Boolean englishBasic;
+        public Boolean localLanguage;
+        public Boolean computerBasics;
+        public Boolean normalVision;
+        public Boolean colorVisionOK;
+        public Boolean vaccProof;
+        public Boolean safetyInducted;
 
-        // location (non‑gating; MH‑only for now)
-        public String stateCode;         // "MH"
-        public String district;          // canonical name (e.g., "Thane")
+        public String stateCode;
+        public String district;
     }
 
-    /** Result of a single sector eligibility evaluation. */
     public static final class Eligibility {
         public final boolean eligible;
-        public final List<String> reasons; // empty when eligible
+        public final List<String> reasons;
         public Eligibility(boolean eligible, List<String> reasons) {
             this.eligible = eligible;
             this.reasons = (reasons == null) ? List.of() : List.copyOf(reasons);
         }
     }
 
-    /** Core: derive Cand_* from raw gate.Q1..Q24 answers; carry gate.DISTRICT (non‑gating). */
     public Cand deriveCand(Map<String, String> gateAnswers) {
         if (gateAnswers == null) gateAnswers = Map.of();
         var cand = new Cand();
 
-        // Q1 Education: A..G -> 0..6
         cand.edu = mapChoiceIndex(gateAnswers.get("gate.Q1"), 7);
 
-        // Q2 Lift
-        {
+        {   // Q2 lift
             String v = upper(gateAnswers.get("gate.Q2"));
             if (v != null) {
                 cand.liftKg = switch (v) {
@@ -85,18 +72,11 @@ public class EligibilityService {
                 };
             }
         }
-
-        // Q3 Standing
         cand.standingOK = yesNo(gateAnswers.get("gate.Q3"));
+        cand.nightOK    = yesNo(gateAnswers.get("gate.Q4"));
+        cand.weekendOK  = yesNo(gateAnswers.get("gate.Q5"));
 
-        // Q4 Night
-        cand.nightOK = yesNo(gateAnswers.get("gate.Q4"));
-
-        // Q5 Weekend
-        cand.weekendOK = yesNo(gateAnswers.get("gate.Q5"));
-
-        // Q6 Commute
-        {
+        {   // Q6 commute
             String v = upper(gateAnswers.get("gate.Q6"));
             if (v != null) {
                 cand.commuteKm = switch (v) {
@@ -106,21 +86,12 @@ public class EligibilityService {
                 };
             }
         }
-
-        // Q7 Smartphone
-        cand.smartphone = yesNo(gateAnswers.get("gate.Q7"));
-
-        // Q8 Computer basics
+        cand.smartphone     = yesNo(gateAnswers.get("gate.Q7"));
         cand.computerBasics = basicOrAbove(gateAnswers.get("gate.Q8"));
+        cand.englishBasic   = basicOrAbove(gateAnswers.get("gate.Q9"));
+        cand.localLanguage  = basicOrAbove(gateAnswers.get("gate.Q10"));
 
-        // Q9 English
-        cand.englishBasic = basicOrAbove(gateAnswers.get("gate.Q9"));
-
-        // Q10 Local language
-        cand.localLanguage = basicOrAbove(gateAnswers.get("gate.Q10"));
-
-        // Q11 Docs
-        {
+        {   // Q11 docs
             String v = upper(gateAnswers.get("gate.Q11"));
             if (v != null) {
                 cand.hasDocs = switch (v) {
@@ -130,24 +101,19 @@ public class EligibilityService {
                 };
             }
         }
-
-        // Q12 DL
-        {
+        {   // Q12 licence (valid only)
             String v = upper(gateAnswers.get("gate.Q12"));
             if (v != null) {
                 cand.hasDL = switch (v) {
-                    case "C", "D", "E" -> true;      // 2W / LMV / HMV
-                    case "A", "B" -> false;          // No / Learner
+                    case "C", "D", "E" -> true;
+                    case "A", "B" -> false;
                     default -> null;
                 };
             }
         }
-
-        // Q13 Two-wheeler
         cand.has2W = yesNo(gateAnswers.get("gate.Q13"));
 
-        // Q14 PSARA
-        {
+        {   // Q14 PSARA
             String v = upper(gateAnswers.get("gate.Q14"));
             if (v != null) {
                 cand.hasPSARA = switch (v) {
@@ -157,9 +123,7 @@ public class EligibilityService {
                 };
             }
         }
-
-        // Q15 AEP
-        {
+        {   // Q15 AEP
             String v = upper(gateAnswers.get("gate.Q15"));
             if (v != null) {
                 cand.hasAEP = switch (v) {
@@ -169,9 +133,7 @@ public class EligibilityService {
                 };
             }
         }
-
-        // Q16 Background check
-        {
+        {   // Q16 BGC
             String v = upper(gateAnswers.get("gate.Q16"));
             if (v != null) {
                 cand.bgcOK = switch (v) {
@@ -181,9 +143,7 @@ public class EligibilityService {
                 };
             }
         }
-
-        // Q17 Vision
-        {
+        {   // Q17 normal vision
             String v = upper(gateAnswers.get("gate.Q17"));
             if (v != null) {
                 cand.normalVision = switch (v) {
@@ -193,9 +153,7 @@ public class EligibilityService {
                 };
             }
         }
-
-        // Q18 Colour vision
-        {
+        {   // Q18 colour
             String v = upper(gateAnswers.get("gate.Q18"));
             if (v != null) {
                 cand.colorVisionOK = switch (v) {
@@ -205,9 +163,7 @@ public class EligibilityService {
                 };
             }
         }
-
-        // Q19 Height
-        {
+        {   // Q19 height
             String v = upper(gateAnswers.get("gate.Q19"));
             if (v != null) {
                 cand.heightCm = switch (v) {
@@ -217,9 +173,7 @@ public class EligibilityService {
                 };
             }
         }
-
-        // Q20 Vaccination proof
-        {
+        {   // Q20 vacc
             String v = upper(gateAnswers.get("gate.Q20"));
             if (v != null) {
                 cand.vaccProof = switch (v) {
@@ -229,18 +183,11 @@ public class EligibilityService {
                 };
             }
         }
-
-        // Q21 Safety induction
         cand.safetyInducted = yesNo(gateAnswers.get("gate.Q21"));
-
-        // Q22 Field travel
-        cand.fieldTravelOK = yesNo(gateAnswers.get("gate.Q22"));
-
-        // Q23 Work at height
+        cand.fieldTravelOK  = yesNo(gateAnswers.get("gate.Q22"));
         cand.workAtHeightOK = yesNo(gateAnswers.get("gate.Q23"));
 
-        // Q24 Typing WPM
-        {
+        {   // Q24 typing
             String v = upper(gateAnswers.get("gate.Q24"));
             if (v != null) {
                 cand.typingWPM = switch (v) {
@@ -251,24 +198,29 @@ public class EligibilityService {
             }
         }
 
-        // Location (MH‑only UI): state fixed to MH; district canonicalized.
+        // NEW: Q26 Age
+        cand.age = parseAge(gateAnswers.get("gate.Q26_age"));
+
+        // Location (MH, district canon)
         cand.stateCode = "MH";
-        cand.district  = MHLocation.canonicalize(gateAnswers.getOrDefault("gate.DISTRICT", null));
+        String distRaw = firstNonBlank(
+                gateAnswers.get("gate.Q25_district"),
+                gateAnswers.get("gate.DISTRICT")
+        );
+        cand.district  = MHLocation.canonicalize(distRaw);
 
         return cand;
     }
 
-    /** Compare candidate vs sector requirements; null requirement fields are ignored. */
     public Eligibility checkEligibility(Cand cand, SectorGates.Requirements req) {
         if (req == null) return new Eligibility(true, List.of());
-
         List<String> reasons = new ArrayList<>();
 
-        // numeric checks
         if (req.minEdu() != null && (cand.edu == null || cand.edu < req.minEdu()))
             reasons.add("Min education required: " + prettyEdu(req.minEdu()));
 
-        if (req.minAge() != null && (cand.age == null || cand.age < req.minAge()))
+        // Age: fail only if provided AND below the requirement.
+        if (req.minAge() != null && cand.age != null && cand.age < req.minAge())
             reasons.add("Min age required: " + req.minAge());
 
         if (req.minHeightCm() != null && (cand.heightCm == null || cand.heightCm < req.minHeightCm()))
@@ -280,7 +232,6 @@ public class EligibilityService {
         if (req.maxCommuteKm() != null && (cand.commuteKm == null || cand.commuteKm > req.maxCommuteKm()))
             reasons.add("Commute must be ≤ " + req.maxCommuteKm() + " km");
 
-        // boolean checks (true => must have)
         need(req.needsStandingOk(),     cand.standingOK,     "Comfortable standing 6–8 hrs", reasons);
         need(req.needsNightOk(),        cand.nightOK,        "Night/rotational shifts OK",   reasons);
         need(req.needsWeekendOk(),      cand.weekendOK,      "Weekend work OK",              reasons);
@@ -308,53 +259,42 @@ public class EligibilityService {
         return new Eligibility(reasons.isEmpty(), reasons);
     }
 
-    /* ---------- helpers ---------- */
-
     private static void need(Boolean require, Boolean has, String label, List<String> reasons) {
-        if (Boolean.TRUE.equals(require) && !Boolean.TRUE.equals(has)) {
-            reasons.add(label);
-        }
+        if (Boolean.TRUE.equals(require) && !Boolean.TRUE.equals(has)) reasons.add(label);
     }
-
     private static String upper(String s) { return (s == null) ? null : s.trim().toUpperCase(Locale.ROOT); }
-
     private static Boolean yesNo(String choice) {
         String c = upper(choice);
         if (c == null) return null;
-        return switch (c) {
-            case "A" -> true;   // Yes
-            case "B" -> false;  // No
-            default -> null;
-        };
+        return switch (c) { case "A" -> true; case "B" -> false; default -> null; };
     }
-
     private static boolean basicOrAbove(String choice) {
         String c = upper(choice);
         if (c == null) return false;
-        return switch (c) {
-            case "A" -> false;             // None
-            case "B", "C", "D" -> true;    // Basic or above
-            default -> false;
-        };
+        return switch (c) { case "A" -> false; case "B","C","D" -> true; default -> false; };
     }
-
-    /** A->0, B->1,...; returns null if out of range. */
     private static Integer mapChoiceIndex(String choice, int size) {
         String c = upper(choice);
         if (c == null || c.length() != 1) return null;
         int idx = c.charAt(0) - 'A';
         return (idx >= 0 && idx < size) ? idx : null;
     }
-
+    private static Integer parseAge(String s) {
+        if (s == null || s.trim().isEmpty()) return null;
+        try {
+            int v = Integer.parseInt(s.trim());
+            return (v < 14 || v > 70) ? null : v;
+        } catch (NumberFormatException e) { return null; }
+    }
+    private static String firstNonBlank(String a, String b) {
+        if (a != null && !a.isBlank()) return a;
+        if (b != null && !b.isBlank()) return b;
+        return null;
+    }
     private static String prettyEdu(int code) {
         return switch (code) {
-            case 0 -> "No schooling";
-            case 1 -> "8th";
-            case 2 -> "10th";
-            case 3 -> "12th";
-            case 4 -> "Diploma/ITI";
-            case 5 -> "Graduate";
-            case 6 -> "Post‑grad+";
+            case 0 -> "No schooling"; case 1 -> "8th"; case 2 -> "10th"; case 3 -> "12th";
+            case 4 -> "Diploma/ITI"; case 5 -> "Graduate"; case 6 -> "Post‑grad+";
             default -> String.valueOf(code);
         };
     }

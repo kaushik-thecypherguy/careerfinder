@@ -138,6 +138,9 @@
                 <div class="opt"><input type="radio" id="q12C" th:name="${'answers['+'gate.Q12'+']'}" value="C" th:checked="${form.answers['gate.Q12']=='C'}"><label for="q12C">Valid two‑wheeler licence only</label></div>
                 <div class="opt"><input type="radio" id="q12D" th:name="${'answers['+'gate.Q12'+']'}" value="D" th:checked="${form.answers['gate.Q12']=='D'}"><label for="q12D">Valid LMV/Car licence</label></div>
                 <div class="opt"><input type="radio" id="q12E" th:name="${'answers['+'gate.Q12'+']'}" value="E" th:checked="${form.answers['gate.Q12']=='E'}"><label for="q12E">Valid HMV/Commercial licence</label></div>
+                <div class="muted" style="font-size:.9rem;margin-top:6px">
+                    Note: Licence is <b>not</b> used to infer your age. It’s checked only for roles that require driving.
+                </div>
             </div>
 
             <!-- Q13 -->
@@ -237,7 +240,7 @@
                 <div class="opt"><input type="radio" id="q24F" th:name="${'answers['+'gate.Q24'+']'}" value="F" th:checked="${form.answers['gate.Q24']=='F'}"><label for="q24F">More than 60 WPM</label></div>
             </div>
 
-            <!-- Q25 (Location; non-gating) -->
+            <!-- Q25 Location (unchanged) -->
             <div class="q">
                 <h3>Q25. Where do you live? (Maharashtra only)</h3>
                 <div class="opt inline"
@@ -260,6 +263,20 @@
                                 th:text="${dist}"
                                 th:selected="${selectedDist == dist}">Pune</option>
                     </select>
+                </div>
+            </div>
+
+            <!-- NEW: Q26 Age -->
+            <div class="q">
+                <h3>Q26. What is your age?</h3>
+                <div class="opt">
+                    <input type="number" min="14" max="70" step="1"
+                           class="select" style="width:120px"
+                           th:name="${'answers['+'gate.Q26_age'+']'}"
+                           th:value="${form.answers['gate.Q26_age']}"/>
+                    <span class="muted" style="font-size:.9rem">
+                        Optional. Used only where employers set a minimum age (e.g., 18+).
+                    </span>
                 </div>
             </div>
 

@@ -138,7 +138,11 @@
         <div class="opt"><input type="radio" id="q12C" th:name="${'answers['+'gate.Q12'+']'}" value="C" th:checked="${form.answers['gate.Q12']=='C'}"><label for="q12C">टू‑व्हीलर वैध (2W only)</label></div>
         <div class="opt"><input type="radio" id="q12D" th:name="${'answers['+'gate.Q12'+']'}" value="D" th:checked="${form.answers['gate.Q12']=='D'}"><label for="q12D">LMV/कार वैध</label></div>
         <div class="opt"><input type="radio" id="q12E" th:name="${'answers['+'gate.Q12'+']'}" value="E" th:checked="${form.answers['gate.Q12']=='E'}"><label for="q12E">HMV/कमर्शियल वैध</label></div>
+        <div class="muted" style="font-size:.9rem;margin-top:6px">
+          नोट: लाइसेंस से <b>उम्र का अनुमान नहीं लगाया जाता</b>। यह केवल उन्हीं भूमिकाओं के लिए जाँचा जाता है जिनमें ड्राइविंग आवश्यक है।
+        </div>
       </div>
+
 
       <!-- Q13 -->
       <div class="q">
@@ -237,7 +241,7 @@
         <div class="opt"><input type="radio" id="q24F" th:name="${'answers['+'gate.Q24'+']'}" value="F" th:checked="${form.answers['gate.Q24']=='F'}"><label for="q24F">60+ (More than 60)</label></div>
       </div>
 
-      <!-- Q25 -->
+      <!-- Q25 (unchanged) -->
       <div class="q">
         <h3>Q25. आप कहाँ रहते हैं? (केवल महाराष्ट्र)</h3>
         <div class="opt inline"
@@ -262,6 +266,21 @@
           </select>
         </div>
       </div>
+
+      <!-- NEW: Q26 Age -->
+      <div class="q">
+        <h3>Q26. आपकी आयु क्या है?</h3>
+        <div class="opt">
+          <input type="number" min="14" max="70" step="1"
+                 class="select" style="width:120px"
+                 th:name="${'answers['+'gate.Q26_age'+']'}"
+                 th:value="${form.answers['gate.Q26_age']}"/>
+          <span class="muted" style="font-size:.9rem">
+            वैकल्पिक। केवल उन्हीं नौकरियों के लिए उपयोग होगा जहाँ नियोक्ता ने न्यूनतम आयु (जैसे 18+) तय की है।
+          </span>
+        </div>
+      </div>
+
 
       <div class="actions">
         <button class="btn" type="submit">सेव करें और आगे बढ़ें</button>

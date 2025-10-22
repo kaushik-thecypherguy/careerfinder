@@ -40,7 +40,6 @@ public class GatingController {
 
         // Maharashtra district list for the dropdown (no state selector).
         List<String> districts = MHLocation.districts();
-        // Expose under BOTH names (templates previously used `districtsMH`)
         model.addAttribute("districtsMH", districts);
         model.addAttribute("mhDistricts", districts);
 
@@ -48,7 +47,6 @@ public class GatingController {
         String email = (String) session.getAttribute("USER_EMAIL");
         if (email != null && !email.isBlank()) {
             Map<String, String> saved = questionnaireService.loadAnswersMap(email);
-            // Harmonize legacy/new keys so the UI can pre‑select
             String savedDistrict = coalesce(
                     saved.get("gate.Q25_district"),
                     saved.get("gate.DISTRICT")
@@ -56,10 +54,8 @@ public class GatingController {
             Map<String, String> answers = new LinkedHashMap<>(saved);
             if (savedDistrict != null && !savedDistrict.isBlank()) {
                 answers.put("gate.Q25_district", savedDistrict);
-                // keep legacy alias visible too
                 answers.putIfAbsent("gate.DISTRICT", savedDistrict);
             }
-            // Default state (hidden field) if missing
             answers.putIfAbsent("gate.Q25_state", "MH");
             form.setAnswers(answers);
         } else {
@@ -76,7 +72,7 @@ public class GatingController {
         };
     }
 
-    /** Persist answers as gate.Q1..gate.Q24 + Q25 state/district (and legacy alias). */
+    /** Persist answers as gate.Q1..Q24 + Q25 + Q26 (age). */
     @PostMapping("/gating")
     public String saveGating(@ModelAttribute("form") QuestionnaireForm form, HttpSession session) {
         String email = (String) session.getAttribute("USER_EMAIL");
@@ -87,34 +83,35 @@ public class GatingController {
         Map<String, String> incoming = form.getAnswers() == null ? Map.of() : form.getAnswers();
         Map<String, String> onlyGate = new LinkedHashMap<>();
 
-        // Save Q25 (state + district)
+        // Q25 (state + district)
         String state = incoming.getOrDefault("gate.Q25_state", "MH");
         if (state != null && !state.isBlank()) {
             onlyGate.put("gate.Q25_state", state);
         }
-
         String distRaw = coalesce(
                 incoming.get("gate.Q25_district"),
-                incoming.get("gate.DISTRICT") // legacy form key (if any)
+                incoming.get("gate.DISTRICT")
         );
         if (distRaw != null && !distRaw.isBlank()) {
             String canonical = MHLocation.canonicalize(distRaw);
-            // New key for downstream logic
             onlyGate.put("gate.Q25_district", canonical);
-            // Legacy alias retained for compatibility
-            onlyGate.put("gate.DISTRICT", canonical);
+            onlyGate.put("gate.DISTRICT", canonical); // legacy alias
         }
 
-        // Persist Q1..Q24 (unchanged mapping)
+        // Q1..Q24 (unchanged)
         for (int i = 1; i <= 24; i++) {
             String k = "gate.Q" + i;
             String v = incoming.get(k);
             if (v != null) onlyGate.put(k, v);
         }
 
-        questionnaireService.saveAnswers(email, onlyGate);
+        // NEW: Q26 age (optional)
+        String age = incoming.get("gate.Q26_age");
+        if (age != null && !age.trim().isEmpty()) {
+            onlyGate.put("gate.Q26_age", age.trim());
+        }
 
-        // Mark flow checkpoint and continue to page‑1 of questionnaire
+        questionnaireService.saveAnswers(email, onlyGate);
         session.setAttribute("GATING_DONE", true);
         return "redirect:/questionnaire?page=1";
     }

@@ -20,7 +20,6 @@
     .muted{color:var(--muted)}
     .small{font-size:.92rem}
 
-    /* Job blocks (Top‑5 & Near‑miss) */
     details.job{border:1px solid var(--border);border-radius:12px;padding:14px 14px;margin:12px 0;background:#fff}
     details.job[open]{box-shadow:0 4px 20px rgba(0,0,0,.06)}
     summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:14px}
@@ -36,7 +35,6 @@
     .rowline{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
     .block{margin-top:12px;border-top:1px dashed var(--border);padding-top:12px}
 
-    /* Bars (traits/domains) */
     .row{display:flex;align-items:center;gap:10px;margin:8px 0}
     .trait{flex:0 0 60%}
     .meter{flex:1;height:12px;border-radius:999px;background:#e5e7eb;overflow:hidden}
@@ -47,7 +45,6 @@
     a.link{color:var(--accent);font-weight:700;text-decoration:none}
     a.link:hover{color:var(--accent-700);text-decoration:underline}
 
-    /* Right rail collapsers */
     .rail details{margin:10px 0}
     .rail summary{font-weight:700;color:#1f2937}
     .rail .content{margin-top:10px}
@@ -61,12 +58,12 @@
 
   <!-- CENTER: Top‑5 + Could‑have‑been -->
   <section class="card">
-
     <h1>Top 5 sectors (Eligible now)</h1>
     <p class="lead">These are your best fits based on your trait profile and current eligibility.</p>
 
     <div th:if="${topEligible != null && !#lists.isEmpty(topEligible)}">
-      <details class="job" th:each="s : ${topEligible}">
+      <details class="job" th:each="s : ${topEligible}"
+               th:attr="data-sector-id=${s.id}, data-detail='full'">
         <summary>
           <span class="chev">▶</span>
           <div style="flex:1">
@@ -79,9 +76,9 @@
           <span class="pill ok">Eligible</span>
         </summary>
 
-        <!-- Space for Phase‑9 cards (job details per sector) -->
         <div class="block">
-          <div class="small muted">Job cards for this sector will appear here (NSDC‑first, Maharashtra‑grounded).</div>
+          <!-- advice container (no old placeholder text) -->
+          <div class="advice" data-state="empty"></div>
         </div>
       </details>
     </div>
@@ -90,10 +87,8 @@
       No eligible sectors yet. Check “Could have been Top‑5” below for how to qualify.
     </div>
 
-    <!-- Could have been Top‑5 (ineligible ≥ cutoff) -->
     <h2 style="margin-top:18px">Could have been Top‑5 if you were eligible</h2>
 
-    <!-- Optional cutoff line (set th:if='false' to hide) -->
     <p class="small muted"
        th:if="${eligibleCutoff != null}"
        th:text="|Shown because score ≥ cutoff ${#numbers.formatDecimal(eligibleCutoff, 1, 1)}|">
@@ -101,7 +96,8 @@
     </p>
 
     <div th:if="${nearMiss != null && !#lists.isEmpty(nearMiss)}">
-      <details class="job" th:each="s : ${nearMiss}">
+      <details class="job" th:each="s : ${nearMiss}"
+               th:attr="data-sector-id=${s.id}, data-detail='brief'">
         <summary>
           <span class="chev">▶</span>
           <div style="flex:1">
@@ -120,6 +116,11 @@
             <li th:each="r : ${s.reasons}" th:text="${r}">Eligibility reason</li>
           </ul>
         </div>
+
+        <div class="block">
+          <!-- advice container for brief card too -->
+          <div class="advice" data-state="empty"></div>
+        </div>
       </details>
     </div>
 
@@ -128,7 +129,7 @@
     </div>
   </section>
 
-  <!-- RIGHT RAIL: Everything else as dropdowns -->
+  <!-- RIGHT RAIL -->
   <aside class="card rail">
     <div class="badge">Profile & Answers</div>
 
@@ -205,14 +206,12 @@
       <div class="content">
         <table>
           <tbody>
-          <!-- Prefer AI-prepared localized rows -->
           <tr th:if="${rec.answersEcho != null && !#lists.isEmpty(rec.answersEcho)}"
               th:each="row : ${rec.answersEcho}">
             <th th:text="${row.label}">Question</th>
             <td th:text="${row.value}">Answer</td>
           </tr>
 
-          <!-- Fallback to legacy echo -->
           <tr th:if="${(rec.answersEcho == null || #lists.isEmpty(rec.answersEcho))
                        and (rec.echoAnswers == null || #lists.isEmpty(rec.echoAnswers))}">
             <td colspan="2" class="muted">No answers found.</td>
@@ -228,5 +227,102 @@
     </details>
   </aside>
 </main>
+
+<!-- Minimal inline JS: loads advice once per card -->
+<script>
+  (function(){
+    function $(sel, root){ return (root||document).querySelector(sel); }
+    function $all(sel, root){ return Array.from((root||document).querySelectorAll(sel)); }
+
+    function renderAdvice(container, data){
+      const esc = s => (s ?? '').toString();
+      const has = a => Array.isArray(a) && a.length > 0;
+
+      const blocks = [];
+
+      // Title line
+      blocks.push(
+        `<div class="small muted" style="margin-bottom:8px">
+           <b>${esc(data.sectorName || '')}</b> – ${esc(data.userDistrict || '')}
+           ${has(data.cityFocus) ? ` (focus: ${data.cityFocus.map(esc).join(', ')})` : ''}
+         </div>`);
+
+      if (has(data.whyFit)) {
+        blocks.push(`<div><b>Why this fits:</b><ul style="margin:6px 0 0 18px">${data.whyFit.map(i=>`<li>${esc(i)}</li>`).join('')}</ul></div>`);
+      }
+
+      if (has(data.entryRoles)) {
+        blocks.push(`<div style="margin-top:8px"><b>Entry roles nearby:</b><ul style="margin:6px 0 0 18px">${
+          data.entryRoles.map(r=>`<li><b>${esc(r.title||'')}</b>${r.notes?` – ${esc(r.notes)}`:''}</li>`).join('')
+        }</ul></div>`);
+      }
+
+      if (data.startingSalaryINR && (data.startingSalaryINR.district || (data.startingSalaryINR.nearby && data.startingSalaryINR.nearby.length))) {
+        const s = data.startingSalaryINR;
+        const nearby = Array.isArray(s.nearby) ? s.nearby.map(n=>`${esc(n.city)}: ${esc(n.range)}`).join('; ') : '';
+        blocks.push(`<div style="margin-top:8px"><b>Starting salary (MH):</b> ${
+          esc(s.district||'')
+        }${nearby?` &nbsp;|&nbsp; ${nearby}`:''}${s.note?` &nbsp;<span class="small muted">(${esc(s.note)})</span>`:''}</div>`);
+      }
+
+      if (has(data.whereToApply)) {
+        blocks.push(`<div style="margin-top:8px"><b>Where to apply:</b><ul style="margin:6px 0 0 18px">${
+          data.whereToApply.map(l=>`<li><a class="link" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)}</a></li>`).join('')
+        }</ul></div>`);
+      }
+
+      if (data.nearbyIfSparse && (data.nearbyIfSparse.explanation || has(data.nearbyIfSparse.suggestedCities))) {
+        blocks.push(`<div style="margin-top:8px"><b>If few roles locally:</b> ${
+          esc(data.nearbyIfSparse.explanation || '')
+        } ${has(data.nearbyIfSparse.suggestedCities)?' — ' + data.nearbyIfSparse.suggestedCities.map(esc).join(', '):''}</div>`);
+      }
+
+      if (has(data.gatingReminders)) {
+        blocks.push(`<div style="margin-top:8px"><b>Keep in mind:</b><ul style="margin:6px 0 0 18px">${
+          data.gatingReminders.map(i=>`<li>${esc(i)}</li>`).join('')
+        }</ul></div>`);
+      }
+
+      if (has(data.checklistWeek1)) {
+        blocks.push(`<div style="margin-top:8px"><b>This week:</b><ul style="margin:6px 0 0 18px">${
+          data.checklistWeek1.map(i=>`<li>${esc(i)}</li>`).join('')
+        }</ul></div>`);
+      }
+
+      if (has(data.disclaimers)) {
+        blocks.push(`<div class="small muted" style="margin-top:8px">${data.disclaimers.map(esc).join(' ')}</div>`);
+      }
+
+      container.innerHTML = blocks.join('');
+      container.setAttribute('data-state','loaded');
+    }
+
+    function loadAdviceOnce(detailsEl){
+      const container = detailsEl.querySelector('.advice');
+      if (!container || container.getAttribute('data-state') === 'loaded') return;
+
+      const sectorId = detailsEl.getAttribute('data-sector-id');
+      const detail = detailsEl.getAttribute('data-detail') || 'full';
+      if (!sectorId) return;
+
+      container.innerHTML = `<div class="small muted">Loading…</div>`;
+      fetch(`/api/sector-advice?sectorId=${encodeURIComponent(sectorId)}&detail=${encodeURIComponent(detail)}`, {
+        headers: { "Accept":"application/json" }
+      })
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(json => renderAdvice(container, json))
+        .catch(() => {
+          container.innerHTML = `<div class="small muted">Couldn’t load advice. Please try again.</div>`;
+        });
+    }
+
+    // Attach to all job <details>
+    $all('details.job').forEach(d => {
+      d.addEventListener('toggle', () => {
+        if (d.open) loadAdviceOnce(d);
+      }, { passive:true });
+    });
+  })();
+</script>
 </body>
 </html>
