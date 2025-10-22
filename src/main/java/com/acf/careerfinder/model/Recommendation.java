@@ -98,3 +98,4 @@ public class Recommendation {
     public List<AnswerRow> getAnswersEcho() { return answersEcho; }
     public void setAnswersEcho(List<AnswerRow> answersEcho) { this.answersEcho = answersEcho; }
 }
+

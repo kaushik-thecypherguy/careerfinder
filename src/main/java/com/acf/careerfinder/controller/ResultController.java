@@ -54,10 +54,10 @@ public class ResultController {
         }
         applyLocaleFromSession(session);
 
-        // Load all saved answers (includes gate.Q1..Q24 + psychometric answers)
+        // Load all saved answers (includes gate.Q25_state/district + gate.Q1..Q24 + psychometric answers)
         Map<String, String> answers = questionnaireService.loadAnswersMap(email);
 
-        // STRICT GUARD: gating must be fully completed (Q1..Q24 present & non-blank)
+        // STRICT GUARD: gating must be fully completed (DISTRICT + Q1..Q24 present & non-blank)
         if (!hasAllGateAnswers(answers)) {
             return "redirect:/gating?error=incomplete";
         }
@@ -84,19 +84,20 @@ public class ResultController {
 
     private static boolean hasAllGateAnswers(Map<String, String> answers) {
         if (answers == null) return false;
+
+        // Require Q25 district (accept new key or legacy alias)
+        String dist = coalesce(answers.get("gate.Q25_district"), answers.get("gate.DISTRICT"));
+        if (dist == null || dist.trim().isEmpty()) return false;
+
+        // Require Q1..Q24
         for (int i = 1; i <= 24; i++) {
-            String k = "gate.Q" + i;
-            String v = answers.get(k);
+            String v = answers.get("gate.Q" + i);
             if (v == null || v.trim().isEmpty()) return false;
         }
         return true;
     }
 
-    /**
-     * Local helper: the weights JSON uses keys "T01".."T12".
-     * We map the enum order to those codes: T01 for first enum constant, etc.
-     * NOTE: Keep Trait enum order aligned with the weights file.
-     */
+    /** Local helper: the weights JSON uses keys "T01".."T12". */
     private static Map<String, Double> toTCodeMap(Map<Trait, Double> traitMap) {
         Map<String, Double> out = new LinkedHashMap<>();
         int i = 1;
@@ -107,5 +108,11 @@ public class ResultController {
             i++;
         }
         return out;
+    }
+
+    private static String coalesce(String a, String b) {
+        if (a != null && !a.isBlank()) return a;
+        if (b != null && !b.isBlank()) return b;
+        return null;
     }
 }

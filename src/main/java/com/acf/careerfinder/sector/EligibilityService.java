@@ -1,18 +1,19 @@
 package com.acf.careerfinder.sector;
 
+import com.acf.careerfinder.geo.MHLocation;
 import com.acf.careerfinder.sector.model1.SectorGates;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
 
 /**
- * Phase-7:
+ * Phase‑7:
  *  (a) derive normalized candidate gating attributes (Cand_*) from gate.Q1..Q24,
- *  (b) evaluate eligibility vs sector gate requirements and return reasons if ineligible.
+ *  (b) evaluate eligibility vs sector gate requirements and return reasons if ineligible,
+ *  (c) carry Maharashtra location (gate.DISTRICT) for later chat context; non‑gating.
  *
  * Notes:
- * - Mapping follows your gating doc (Q1..Q24 -> Cand_*).
- * - Any null field in requirements is treated as "not required".
+ * - MCQ → Cand_* mapping per gating doc (Q1..Q24). Location is non‑gating.  // see doc
  */
 @Service
 public class EligibilityService {
@@ -49,28 +50,31 @@ public class EligibilityService {
         public Boolean colorVisionOK;    // Q18
         public Boolean vaccProof;        // Q20
         public Boolean safetyInducted;   // Q21
+
+        // location (non‑gating; MH‑only for now)
+        public String stateCode;         // "MH"
+        public String district;          // canonical name (e.g., "Thane")
     }
 
     /** Result of a single sector eligibility evaluation. */
     public static final class Eligibility {
         public final boolean eligible;
         public final List<String> reasons; // empty when eligible
-
         public Eligibility(boolean eligible, List<String> reasons) {
             this.eligible = eligible;
             this.reasons = (reasons == null) ? List.of() : List.copyOf(reasons);
         }
     }
 
-    /** Core: derive Cand_* from raw gate.Q1..Q24 answers.  (NPE-safe) */
+    /** Core: derive Cand_* from raw gate.Q1..Q24 answers; carry gate.DISTRICT (non‑gating). */
     public Cand deriveCand(Map<String, String> gateAnswers) {
         if (gateAnswers == null) gateAnswers = Map.of();
         var cand = new Cand();
 
         // Q1 Education: A..G -> 0..6
-        cand.edu = mapChoiceIndex(gateAnswers.get("gate.Q1"), 7); // 0..6
+        cand.edu = mapChoiceIndex(gateAnswers.get("gate.Q1"), 7);
 
-        // Q2 Lift (lower bound: 5/10/15/20/25/30)
+        // Q2 Lift
         {
             String v = upper(gateAnswers.get("gate.Q2"));
             if (v != null) {
@@ -82,16 +86,16 @@ public class EligibilityService {
             }
         }
 
-        // Q3 Standing long hours
+        // Q3 Standing
         cand.standingOK = yesNo(gateAnswers.get("gate.Q3"));
 
-        // Q4 Night shifts
+        // Q4 Night
         cand.nightOK = yesNo(gateAnswers.get("gate.Q4"));
 
         // Q5 Weekend
         cand.weekendOK = yesNo(gateAnswers.get("gate.Q5"));
 
-        // Q6 Commute (upper bound: 5/10/15/20/30/40)
+        // Q6 Commute
         {
             String v = upper(gateAnswers.get("gate.Q6"));
             if (v != null) {
@@ -106,16 +110,16 @@ public class EligibilityService {
         // Q7 Smartphone
         cand.smartphone = yesNo(gateAnswers.get("gate.Q7"));
 
-        // Q8 Computer basics: Basic or above = true
+        // Q8 Computer basics
         cand.computerBasics = basicOrAbove(gateAnswers.get("gate.Q8"));
 
-        // Q9 English: Basic+ true
+        // Q9 English
         cand.englishBasic = basicOrAbove(gateAnswers.get("gate.Q9"));
 
-        // Q10 Local language: Basic+ true
+        // Q10 Local language
         cand.localLanguage = basicOrAbove(gateAnswers.get("gate.Q10"));
 
-        // Q11 Docs: Yes/Partly -> true
+        // Q11 Docs
         {
             String v = upper(gateAnswers.get("gate.Q11"));
             if (v != null) {
@@ -127,7 +131,7 @@ public class EligibilityService {
             }
         }
 
-        // Q12 DL: only valid licences => true
+        // Q12 DL
         {
             String v = upper(gateAnswers.get("gate.Q12"));
             if (v != null) {
@@ -139,10 +143,10 @@ public class EligibilityService {
             }
         }
 
-        // Q13 Two-wheeler access
+        // Q13 Two-wheeler
         cand.has2W = yesNo(gateAnswers.get("gate.Q13"));
 
-        // Q14 PSARA: Have / Training-pending -> true
+        // Q14 PSARA
         {
             String v = upper(gateAnswers.get("gate.Q14"));
             if (v != null) {
@@ -154,7 +158,7 @@ public class EligibilityService {
             }
         }
 
-        // Q15 AEP: only A => true
+        // Q15 AEP
         {
             String v = upper(gateAnswers.get("gate.Q15"));
             if (v != null) {
@@ -202,7 +206,7 @@ public class EligibilityService {
             }
         }
 
-        // Q19 Height (lower bound 150/155/160/165/170)
+        // Q19 Height
         {
             String v = upper(gateAnswers.get("gate.Q19"));
             if (v != null) {
@@ -214,7 +218,7 @@ public class EligibilityService {
             }
         }
 
-        // Q20 Vaccination proof: A/B -> true
+        // Q20 Vaccination proof
         {
             String v = upper(gateAnswers.get("gate.Q20"));
             if (v != null) {
@@ -235,7 +239,7 @@ public class EligibilityService {
         // Q23 Work at height
         cand.workAtHeightOK = yesNo(gateAnswers.get("gate.Q23"));
 
-        // Q24 Typing WPM: 10/20/30/40/55/65
+        // Q24 Typing WPM
         {
             String v = upper(gateAnswers.get("gate.Q24"));
             if (v != null) {
@@ -247,7 +251,10 @@ public class EligibilityService {
             }
         }
 
-        // Age: not captured yet → cand.age remains null.
+        // Location (MH‑only UI): state fixed to MH; district canonicalized.
+        cand.stateCode = "MH";
+        cand.district  = MHLocation.canonicalize(gateAnswers.getOrDefault("gate.DISTRICT", null));
+
         return cand;
     }
 

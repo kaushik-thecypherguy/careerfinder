@@ -15,11 +15,13 @@
         .q{padding:12px 0;border-bottom:1px solid var(--border)} .q:last-child{border-bottom:0}
         .q h3{margin:0 0 8px;font-size:1.02rem}
         .opt{display:flex;align-items:center;gap:10px;margin:6px 0}
-        .opt input{accent-color:var(--accent)}
+        .opt input, .opt select{accent-color:var(--accent)}
         .actions{display:flex;gap:12px;margin-top:18px;align-items:center;flex-wrap:wrap}
         .btn{padding:10px 16px;border-radius:12px;border:1px solid var(--accent);background:var(--accent);color:#fff;font-weight:800;cursor:pointer;text-decoration:none}
         .btn:hover{background:var(--accent-700)}
         .muted{color:var(--muted)}
+        .inline{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+        .select{padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:#fff;min-width:240px}
     </style>
 </head>
 <body>
@@ -233,6 +235,32 @@
                 <div class="opt"><input type="radio" id="q24D" th:name="${'answers['+'gate.Q24'+']'}" value="D" th:checked="${form.answers['gate.Q24']=='D'}"><label for="q24D">36–45 WPM</label></div>
                 <div class="opt"><input type="radio" id="q24E" th:name="${'answers['+'gate.Q24'+']'}" value="E" th:checked="${form.answers['gate.Q24']=='E'}"><label for="q24E">46–60 WPM</label></div>
                 <div class="opt"><input type="radio" id="q24F" th:name="${'answers['+'gate.Q24'+']'}" value="F" th:checked="${form.answers['gate.Q24']=='F'}"><label for="q24F">More than 60 WPM</label></div>
+            </div>
+
+            <!-- Q25 (Location; non-gating) -->
+            <div class="q">
+                <h3>Q25. Where do you live? (Maharashtra only)</h3>
+                <div class="opt inline"
+                     th:with="selectedDist=${form != null and form.answers != null ?
+                        (form.answers['gate.Q25_district'] != null ? form.answers['gate.Q25_district'] : form.answers['gate.DISTRICT'])
+                        : null}">
+                    <div>State: <b>Maharashtra</b> (fixed)</div>
+                    <input type="hidden"
+                           th:name="${'answers['+'gate.Q25_state'+']'}"
+                           th:value="${form.answers['gate.Q25_state'] != null ? form.answers['gate.Q25_state'] : 'MH'}"/>
+                    <label for="districtSelect" class="muted">District</label>
+                    <select id="districtSelect" class="select"
+                            th:name="${'answers['+'gate.Q25_district'+']'}" required>
+                        <option value=""
+                                th:selected="${selectedDist == null or #strings.isEmpty(selectedDist)}">
+                            Select district
+                        </option>
+                        <option th:each="dist : ${districtsMH}"
+                                th:value="${dist}"
+                                th:text="${dist}"
+                                th:selected="${selectedDist == dist}">Pune</option>
+                    </select>
+                </div>
             </div>
 
             <div class="actions">
