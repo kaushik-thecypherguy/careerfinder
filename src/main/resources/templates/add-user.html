@@ -74,9 +74,7 @@
             <form th:action="@{/CreateUser}" th:object="${user}" method="post" novalidate>
                 <input type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}" />
 
-                <label for="name">Full name (username)</label>
-                <input id="name" th:field="*{username}" placeholder="Your name"
-                       required autocomplete="username" />
+
 
                 <label for="email">Email</label>
                 <input id="email" th:field="*{email}" type="email" placeholder="you@example.com"
