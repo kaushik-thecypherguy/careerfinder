@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="_csrf" th:content="${_csrf?.token}">
+  <meta name="_csrf_header" th:content="${_csrf?.headerName}">
   <title>आपके बारे में • पात्रता</title>
   <style>
     :root{--bg:#f8fafc;--card:#fff;--text:#0f172a;--muted:#64748b;--border:#e2e8f0;--accent:#2563eb;--accent-700:#1d4ed8}
@@ -22,6 +24,11 @@
     .muted{color:var(--muted)}
     .inline{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
     .select{padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:#fff;min-width:240px}
+
+    /* inline validation */
+    .q.error{border:1px solid #fecaca;background:#fff7f7;border-left:4px solid #ef4444}
+    .err{display:none;color:#b91c1c;font-size:.9rem;margin-top:6px}
+    .q.error .err{display:block}
   </style>
 </head>
 <body>
@@ -30,7 +37,7 @@
     <h1>आपके बारे में (पात्रता व प्राथमिकताएँ)</h1>
     <p class="lead">ये उत्तर नौकरी पात्रता/फ़िट जाँचने में मदद करते हैं — <b>व्यक्तित्व/ट्रेट स्कोर पर असर नहीं पड़ता</b>।</p>
 
-    <form th:action="@{/gating}" th:object="${form}" method="post">
+    <form id="gatingForm" th:action="@{/gating}" th:object="${form}" method="post" data-section="GATING" data-page="1">
       <input type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}"/>
 
       <!-- Q1 -->
@@ -43,6 +50,7 @@
         <div class="opt"><input type="radio" id="q1E" th:name="${'answers['+'gate.Q1'+']'}" value="E" th:checked="${form.answers['gate.Q1']=='E'}"><label for="q1E">डिप्लोमा / ITI</label></div>
         <div class="opt"><input type="radio" id="q1F" th:name="${'answers['+'gate.Q1'+']'}" value="F" th:checked="${form.answers['gate.Q1']=='F'}"><label for="q1F">ग्रेजुएट (BA/BSc/BCom/BE)</label></div>
         <div class="opt"><input type="radio" id="q1G" th:name="${'answers['+'gate.Q1'+']'}" value="G" th:checked="${form.answers['gate.Q1']=='G'}"><label for="q1G">पोस्ट‑ग्रेजुएट या अधिक (Post‑graduate+)</label></div>
+        <div class="err" aria-live="polite"></div>
       </div>
 
       <!-- Q2 -->
@@ -54,6 +62,7 @@
         <div class="opt"><input type="radio" id="q2D" th:name="${'answers['+'gate.Q2'+']'}" value="D" th:checked="${form.answers['gate.Q2']=='D'}"><label for="q2D">16–20 किग्रा</label></div>
         <div class="opt"><input type="radio" id="q2E" th:name="${'answers['+'gate.Q2'+']'}" value="E" th:checked="${form.answers['gate.Q2']=='E'}"><label for="q2E">21–25 किग्रा</label></div>
         <div class="opt"><input type="radio" id="q2F" th:name="${'answers['+'gate.Q2'+']'}" value="F" th:checked="${form.answers['gate.Q2']=='F'}"><label for="q2F">26 किग्रा या अधिक</label></div>
+        <div class="err" aria-live="polite"></div>
       </div>
 
       <!-- Q3 -->
@@ -61,6 +70,7 @@
         <h3>Q3. 6–8 घंटे खड़े/चलते रहने में आराम है? (Standing for long periods)</h3>
         <div class="opt"><input type="radio" id="q3A" th:name="${'answers['+'gate.Q3'+']'}" value="A" th:checked="${form.answers['gate.Q3']=='A'}"><label for="q3A">हाँ (Yes)</label></div>
         <div class="opt"><input type="radio" id="q3B" th:name="${'answers['+'gate.Q3'+']'}" value="B" th:checked="${form.answers['gate.Q3']=='B'}"><label for="q3B">नहीं (No)</label></div>
+        <div class="err" aria-live="polite"></div>
       </div>
 
       <!-- Q4 -->
@@ -68,6 +78,7 @@
         <h3>Q4. नाइट/रोटेशनल शिफ्ट में काम कर सकते हैं? (Night/rotational shifts)</h3>
         <div class="opt"><input type="radio" id="q4A" th:name="${'answers['+'gate.Q4'+']'}" value="A" th:checked="${form.answers['gate.Q4']=='A'}"><label for="q4A">हाँ (Yes)</label></div>
         <div class="opt"><input type="radio" id="q4B" th:name="${'answers['+'gate.Q4'+']'}" value="B" th:checked="${form.answers['gate.Q4']=='B'}"><label for="q4B">नहीं (No)</label></div>
+        <div class="err" aria-live="polite"></div>
       </div>
 
       <!-- Q5 -->
@@ -75,6 +86,7 @@
         <h3>Q5. वीकेंड पर काम, सप्ताह में किसी और दिन छुट्टी? (Weekends OK)</h3>
         <div class="opt"><input type="radio" id="q5A" th:name="${'answers['+'gate.Q5'+']'}" value="A" th:checked="${form.answers['gate.Q5']=='A'}"><label for="q5A">हाँ (Yes)</label></div>
         <div class="opt"><input type="radio" id="q5B" th:name="${'answers['+'gate.Q5'+']'}" value="B" th:checked="${form.answers['gate.Q5']=='B'}"><label for="q5B">नहीं (No)</label></div>
+        <div class="err" aria-live="polite"></div>
       </div>
 
       <!-- Q6 -->
@@ -86,6 +98,7 @@
         <div class="opt"><input type="radio" id="q6D" th:name="${'answers['+'gate.Q6'+']'}" value="D" th:checked="${form.answers['gate.Q6']=='D'}"><label for="q6D">20 किमी तक</label></div>
         <div class="opt"><input type="radio" id="q6E" th:name="${'answers['+'gate.Q6'+']'}" value="E" th:checked="${form.answers['gate.Q6']=='E'}"><label for="q6E">21–30 किमी</label></div>
         <div class="opt"><input type="radio" id="q6F" th:name="${'answers['+'gate.Q6'+']'}" value="F" th:checked="${form.answers['gate.Q6']=='F'}"><label for="q6F">30 किमी से अधिक</label></div>
+        <div class="err" aria-live="polite"></div>
       </div>
 
       <!-- Q7 -->
@@ -93,6 +106,7 @@
         <h3>Q7. आपके पास स्मार्टफ़ोन है और आप रोज़ाना ऐप्स यूज़ कर सकते हैं? (Smartphone & apps)</h3>
         <div class="opt"><input type="radio" id="q7A" th:name="${'answers['+'gate.Q7'+']'}" value="A" th:checked="${form.answers['gate.Q7']=='A'}"><label for="q7A">हाँ (Yes)</label></div>
         <div class="opt"><input type="radio" id="q7B" th:name="${'answers['+'gate.Q7'+']'}" value="B" th:checked="${form.answers['gate.Q7']=='B'}"><label for="q7B">नहीं (No)</label></div>
+        <div class="err" aria-live="polite"></div>
       </div>
 
       <!-- Q8 -->
@@ -102,6 +116,7 @@
         <div class="opt"><input type="radio" id="q8B" th:name="${'answers['+'gate.Q8'+']'}" value="B" th:checked="${form.answers['gate.Q8']=='B'}"><label for="q8B">बेसिक (Basic)</label></div>
         <div class="opt"><input type="radio" id="q8C" th:name="${'answers['+'gate.Q8'+']'}" value="C" th:checked="${form.answers['gate.Q8']=='C'}"><label for="q8C">कंफ़र्टेबल (Comfortable)</label></div>
         <div class="opt"><input type="radio" id="q8D" th:name="${'answers['+'gate.Q8'+']'}" value="D" th:checked="${form.answers['gate.Q8']=='D'}"><label for="q8D">एडवांस्ड (Advanced)</label></div>
+        <div class="err" aria-live="polite"></div>
       </div>
 
       <!-- Q9 -->
@@ -111,6 +126,7 @@
         <div class="opt"><input type="radio" id="q9B" th:name="${'answers['+'gate.Q9'+']'}" value="B" th:checked="${form.answers['gate.Q9']=='B'}"><label for="q9B">सिर्फ़ पढ़ना (Basic reading)</label></div>
         <div class="opt"><input type="radio" id="q9C" th:name="${'answers['+'gate.Q9'+']'}" value="C" th:checked="${form.answers['gate.Q9']=='C'}"><label for="q9C">पढ़ना + बोलना (Reading + speaking)</label></div>
         <div class="opt"><input type="radio" id="q9D" th:name="${'answers['+'gate.Q9'+']'}" value="D" th:checked="${form.answers['gate.Q9']=='D'}"><label for="q9D">कंफ़र्टेबल/फ़्लूएंट (Comfortable/fluent)</label></div>
+        <div class="err" aria-live="polite"></div>
       </div>
 
       <!-- Q10 -->
@@ -120,6 +136,7 @@
         <div class="opt"><input type="radio" id="q10B" th:name="${'answers['+'gate.Q10'+']'}" value="B" th:checked="${form.answers['gate.Q10']=='B'}"><label for="q10B">बेसिक (Basic)</label></div>
         <div class="opt"><input type="radio" id="q10C" th:name="${'answers['+'gate.Q10'+']'}" value="C" th:checked="${form.answers['gate.Q10']=='C'}"><label for="q10C">अच्छी (Good)</label></div>
         <div class="opt"><input type="radio" id="q10D" th:name="${'answers['+'gate.Q10'+']'}" value="D" th:checked="${form.answers['gate.Q10']=='D'}"><label for="q10D">धाराप्रवाह (Fluent)</label></div>
+        <div class="err" aria-live="polite"></div>
       </div>
 
       <!-- Q11 -->
@@ -128,6 +145,7 @@
         <div class="opt"><input type="radio" id="q11A" th:name="${'answers['+'gate.Q11'+']'}" value="A" th:checked="${form.answers['gate.Q11']=='A'}"><label for="q11A">हाँ – तैयार (Yes – ready)</label></div>
         <div class="opt"><input type="radio" id="q11B" th:name="${'answers['+'gate.Q11'+']'}" value="B" th:checked="${form.answers['gate.Q11']=='B'}"><label for="q11B">आंशिक – 1–2 हफ्तों में (Partly – 1–2 weeks)</label></div>
         <div class="opt"><input type="radio" id="q11C" th:name="${'answers['+'gate.Q11'+']'}" value="C" th:checked="${form.answers['gate.Q11']=='C'}"><label for="q11C">नहीं (No)</label></div>
+        <div class="err" aria-live="polite"></div>
       </div>
 
       <!-- Q12 -->
@@ -141,14 +159,15 @@
         <div class="muted" style="font-size:.9rem;margin-top:6px">
           नोट: लाइसेंस से <b>उम्र का अनुमान नहीं लगाया जाता</b>। यह केवल उन्हीं भूमिकाओं के लिए जाँचा जाता है जिनमें ड्राइविंग आवश्यक है।
         </div>
+        <div class="err" aria-live="polite"></div>
       </div>
-
 
       <!-- Q13 -->
       <div class="q">
         <h3>Q13. रोज़मर्रा के लिए टू‑व्हीलर उपलब्ध? (Two‑wheeler access)</h3>
         <div class="opt"><input type="radio" id="q13A" th:name="${'answers['+'gate.Q13'+']'}" value="A" th:checked="${form.answers['gate.Q13']=='A'}"><label for="q13A">हाँ (Yes)</label></div>
         <div class="opt"><input type="radio" id="q13B" th:name="${'answers['+'gate.Q13'+']'}" value="B" th:checked="${form.answers['gate.Q13']=='B'}"><label for="q13B">नहीं (No)</label></div>
+        <div class="err" aria-live="polite"></div>
       </div>
 
       <!-- Q14 -->
@@ -157,6 +176,7 @@
         <div class="opt"><input type="radio" id="q14A" th:name="${'answers['+'gate.Q14'+']'}" value="A" th:checked="${form.answers['gate.Q14']=='A'}"><label for="q14A">वैध PSARA है (Have PSARA)</label></div>
         <div class="opt"><input type="radio" id="q14B" th:name="${'answers['+'gate.Q14'+']'}" value="B" th:checked="${form.answers['gate.Q14']=='B'}"><label for="q14B">ट्रेनिंग पूरी – सर्टिफिकेट पेंडिंग</label></div>
         <div class="opt"><input type="radio" id="q14C" th:name="${'answers['+'gate.Q14'+']'}" value="C" th:checked="${form.answers['gate.Q14']=='C'}"><label for="q14C">PSARA नहीं है</label></div>
+        <div class="err" aria-live="polite"></div>
       </div>
 
       <!-- Q15 -->
@@ -165,6 +185,7 @@
         <div class="opt"><input type="radio" id="q15A" th:name="${'answers['+'gate.Q15'+']'}" value="A" th:checked="${form.answers['gate.Q15']=='A'}"><label for="q15A">AEP है (Have AEP)</label></div>
         <div class="opt"><input type="radio" id="q15B" th:name="${'answers['+'gate.Q15'+']'}" value="B" th:checked="${form.answers['gate.Q15']=='B'}"><label for="q15B">नहीं; स्पॉन्सर मिले तो अप्लाई करेंगे (Willing)</label></div>
         <div class="opt"><input type="radio" id="q15C" th:name="${'answers['+'gate.Q15'+']'}" value="C" th:checked="${form.answers['gate.Q15']=='C'}"><label for="q15C">नहीं; अप्लाई नहीं करेंगे (Not willing)</label></div>
+        <div class="err" aria-live="polite"></div>
       </div>
 
       <!-- Q16 -->
@@ -173,6 +194,7 @@
         <div class="opt"><input type="radio" id="q16A" th:name="${'answers['+'gate.Q16'+']'}" value="A" th:checked="${form.answers['gate.Q16']=='A'}"><label for="q16A">हाँ – और कोई समस्या नहीं (Yes & no issues)</label></div>
         <div class="opt"><input type="radio" id="q16B" th:name="${'answers['+'gate.Q16'+']'}" value="B" th:checked="${form.answers['gate.Q16']=='B'}"><label for="q16B">पक्का नहीं (Unsure)</label></div>
         <div class="opt"><input type="radio" id="q16C" th:name="${'answers['+'gate.Q16'+']'}" value="C" th:checked="${form.answers['gate.Q16']=='C'}"><label for="q16C">नहीं (No)</label></div>
+        <div class="err" aria-live="polite"></div>
       </div>
 
       <!-- Q17 -->
@@ -181,6 +203,7 @@
         <div class="opt"><input type="radio" id="q17A" th:name="${'answers['+'gate.Q17'+']'}" value="A" th:checked="${form.answers['gate.Q17']=='A'}"><label for="q17A">सामान्य/ठीक (Normal/adequate)</label></div>
         <div class="opt"><input type="radio" id="q17B" th:name="${'answers['+'gate.Q17'+']'}" value="B" th:checked="${form.answers['gate.Q17']=='B'}"><label for="q17B">काफ़ी दिक्कत (Significant issues)</label></div>
         <div class="opt"><input type="radio" id="q17C" th:name="${'answers['+'gate.Q17'+']'}" value="C" th:checked="${form.answers['gate.Q17']=='C'}"><label for="q17C">पता नहीं (Not sure)</label></div>
+        <div class="err" aria-live="polite"></div>
       </div>
 
       <!-- Q18 -->
@@ -189,6 +212,7 @@
         <div class="opt"><input type="radio" id="q18A" th:name="${'answers['+'gate.Q18'+']'}" value="A" th:checked="${form.answers['gate.Q18']=='A'}"><label for="q18A">सामान्य (Normal)</label></div>
         <div class="opt"><input type="radio" id="q18B" th:name="${'answers['+'gate.Q18'+']'}" value="B" th:checked="${form.answers['gate.Q18']=='B'}"><label for="q18B">डिफिशिएंसी (Deficiency)</label></div>
         <div class="opt"><input type="radio" id="q18C" th:name="${'answers['+'gate.Q18'+']'}" value="C" th:checked="${form.answers['gate.Q18']=='C'}"><label for="q18C">पता नहीं (Not sure)</label></div>
+        <div class="err" aria-live="polite"></div>
       </div>
 
       <!-- Q19 -->
@@ -199,6 +223,7 @@
         <div class="opt"><input type="radio" id="q19C" th:name="${'answers['+'gate.Q19'+']'}" value="C" th:checked="${form.answers['gate.Q19']=='C'}"><label for="q19C">160–164 सेमी</label></div>
         <div class="opt"><input type="radio" id="q19D" th:name="${'answers['+'gate.Q19'+']'}" value="D" th:checked="${form.answers['gate.Q19']=='D'}"><label for="q19D">165–169 सेमी</label></div>
         <div class="opt"><input type="radio" id="q19E" th:name="${'answers['+'gate.Q19'+']'}" value="E" th:checked="${form.answers['gate.Q19']=='E'}"><label for="q19E">170 सेमी या अधिक</label></div>
+        <div class="err" aria-live="polite"></div>
       </div>
 
       <!-- Q20 -->
@@ -207,6 +232,7 @@
         <div class="opt"><input type="radio" id="q20A" th:name="${'answers['+'gate.Q20'+']'}" value="A" th:checked="${form.answers['gate.Q20']=='A'}"><label for="q20A">हाँ – दस्तावेज़ हैं (Yes)</label></div>
         <div class="opt"><input type="radio" id="q20B" th:name="${'answers['+'gate.Q20'+']'}" value="B" th:checked="${form.answers['gate.Q20']=='B'}"><label for="q20B">आंशिक – कुछ उपलब्ध (Partly)</label></div>
         <div class="opt"><input type="radio" id="q20C" th:name="${'answers['+'gate.Q20'+']'}" value="C" th:checked="${form.answers['gate.Q20']=='C'}"><label for="q20C">नहीं (No)</label></div>
+        <div class="err" aria-live="polite"></div>
       </div>
 
       <!-- Q21 -->
@@ -214,6 +240,7 @@
         <h3>Q21. सेफ़्टी इंडक्शन/बेसिक सेफ़्टी ट्रेनिंग? (Safety induction)</h3>
         <div class="opt"><input type="radio" id="q21A" th:name="${'answers['+'gate.Q21'+']'}" value="A" th:checked="${form.answers['gate.Q21']=='A'}"><label for="q21A">हाँ (Yes)</label></div>
         <div class="opt"><input type="radio" id="q21B" th:name="${'answers['+'gate.Q21'+']'}" value="B" th:checked="${form.answers['gate.Q21']=='B'}"><label for="q21B">नहीं (No)</label></div>
+        <div class="err" aria-live="polite"></div>
       </div>
 
       <!-- Q22 -->
@@ -221,6 +248,7 @@
         <h3>Q22. फ़ील्ड ट्रैवल/इंट्रा‑सिटी विज़िट ठीक है? (Field travel)</h3>
         <div class="opt"><input type="radio" id="q22A" th:name="${'answers['+'gate.Q22'+']'}" value="A" th:checked="${form.answers['gate.Q22']=='A'}"><label for="q22A">हाँ (Yes)</label></div>
         <div class="opt"><input type="radio" id="q22B" th:name="${'answers['+'gate.Q22'+']'}" value="B" th:checked="${form.answers['gate.Q22']=='B'}"><label for="q22B">नहीं (No)</label></div>
+        <div class="err" aria-live="polite"></div>
       </div>
 
       <!-- Q23 -->
@@ -228,6 +256,7 @@
         <h3>Q23. हाइट्स पर काम ठीक है? (Work at heights)</h3>
         <div class="opt"><input type="radio" id="q23A" th:name="${'answers['+'gate.Q23'+']'}" value="A" th:checked="${form.answers['gate.Q23']=='A'}"><label for="q23A">हाँ (Yes)</label></div>
         <div class="opt"><input type="radio" id="q23B" th:name="${'answers['+'gate.Q23'+']'}" value="B" th:checked="${form.answers['gate.Q23']=='B'}"><label for="q23B">नहीं (No)</label></div>
+        <div class="err" aria-live="polite"></div>
       </div>
 
       <!-- Q24 -->
@@ -239,9 +268,10 @@
         <div class="opt"><input type="radio" id="q24D" th:name="${'answers['+'gate.Q24'+']'}" value="D" th:checked="${form.answers['gate.Q24']=='D'}"><label for="q24D">36–45</label></div>
         <div class="opt"><input type="radio" id="q24E" th:name="${'answers['+'gate.Q24'+']'}" value="E" th:checked="${form.answers['gate.Q24']=='E'}"><label for="q24E">46–60</label></div>
         <div class="opt"><input type="radio" id="q24F" th:name="${'answers['+'gate.Q24'+']'}" value="F" th:checked="${form.answers['gate.Q24']=='F'}"><label for="q24F">60+ (More than 60)</label></div>
+        <div class="err" aria-live="polite"></div>
       </div>
 
-      <!-- Q25 (unchanged) -->
+      <!-- Q25 -->
       <div class="q">
         <h3>Q25. आप कहाँ रहते हैं? (केवल महाराष्ट्र)</h3>
         <div class="opt inline"
@@ -265,22 +295,23 @@
                     th:selected="${selectedDist == dist}">Pune</option>
           </select>
         </div>
+        <div class="err" aria-live="polite"></div>
       </div>
 
-      <!-- NEW: Q26 Age -->
+      <!-- Q26 Age (अब आवश्यक) -->
       <div class="q">
         <h3>Q26. आपकी आयु क्या है?</h3>
         <div class="opt">
-          <input type="number" min="14" max="70" step="1"
+          <input type="number" min="14" max="70" step="1" required
                  class="select" style="width:120px"
                  th:name="${'answers['+'gate.Q26_age'+']'}"
                  th:value="${form.answers['gate.Q26_age']}"/>
           <span class="muted" style="font-size:.9rem">
-            वैकल्पिक। केवल उन्हीं नौकरियों के लिए उपयोग होगा जहाँ नियोक्ता ने न्यूनतम आयु (जैसे 18+) तय की है।
+            आवश्यक। केवल उन्हीं नौकरियों के लिए उपयोग होगा जहाँ नियोक्ता ने न्यूनतम आयु (जैसे 18+) तय की है।
           </span>
         </div>
+        <div class="err" aria-live="polite"></div>
       </div>
-
 
       <div class="actions">
         <button class="btn" type="submit">सेव करें और आगे बढ़ें</button>
@@ -289,5 +320,156 @@
     </form>
   </section>
 </main>
+
+<script>
+  (function(){
+    const $  = (s,r)=> (r||document).querySelector(s);
+    const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
+
+    const MSG = {
+      pick: 'कृपया यहाँ विकल्प चुनें।',
+      district: 'कृपया ज़िला चुनें।',
+      age: 'कृपया 14–70 के बीच आयु भरें।'
+    };
+
+    function clearErr(q){
+      q.classList.remove('error');
+      const e = q.querySelector('.err');
+      if(e) e.textContent = '';
+    }
+    function setErr(q, msg){
+      q.classList.add('error');
+      let e = q.querySelector('.err');
+      if(!e){ e = document.createElement('div'); e.className='err'; e.setAttribute('aria-live','polite'); q.appendChild(e); }
+      e.textContent = msg;
+    }
+
+    function validate(){
+      let firstBad = null;
+
+      const groupNames = Array.from(new Set($$('input[type="radio"][name^="answers[gate.Q"]').map(x=>x.name)));
+      groupNames.forEach(name=>{
+        const isChecked = $$(`input[type="radio"][name="${name}"]:checked`).length > 0;
+        if(!isChecked){
+          const q = $$(`input[type="radio"][name="${name}"]`)[0].closest('.q');
+          setErr(q, MSG.pick);
+          if(!firstBad) firstBad = q;
+        }
+      });
+
+      const dist = document.querySelector('select[name="answers[gate.Q25_district]"]');
+      if(dist && !dist.value){
+        const q = dist.closest('.q'); setErr(q, MSG.district); if(!firstBad) firstBad = q;
+      }
+
+      const age = document.querySelector('input[name="answers[gate.Q26_age]"]');
+      if(age){
+        const v = (age.value || '').trim(); const n = Number(v);
+        const ok = v !== '' && !Number.isNaN(n) && n >= 14 && n <= 70;
+        if(!ok){ const q = age.closest('.q'); setErr(q, MSG.age); if(!firstBad) firstBad = q; }
+      }
+
+      if(firstBad){
+        firstBad.scrollIntoView({behavior:'smooth', block:'center'});
+        const f = firstBad.querySelector('input,select,textarea');
+        if(f) try{ f.focus({preventScroll:true}); }catch(e){}
+        return false;
+      }
+      return true;
+    }
+
+    // NEW
+    const QN_STORE_KEY = 'acf_questionnaire_answers';
+    function markFreshStartForQuestionnaire(){
+      if(!sessionStorage.getItem('qn_attempt')){
+        try { localStorage.removeItem(QN_STORE_KEY); } catch(e){}
+        sessionStorage.setItem('qn_reset_once','1');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', ()=>{
+      const form = document.getElementById('gatingForm');
+      if(form){
+        form.addEventListener('submit', (ev)=>{
+          $$('.q').forEach(clearErr);
+          if(!validate()){
+            ev.preventDefault(); ev.stopPropagation(); return;
+          }
+          markFreshStartForQuestionnaire();
+        });
+      }
+      document.addEventListener('change', (e)=>{
+        const q = e.target && e.target.closest && e.target.closest('.q');
+        if(q) clearErr(q);
+      });
+    });
+  })();
+</script>
+<script>
+  (function(){
+    const form = document.querySelector('#gatingForm');
+    if (!form) return;
+
+    const section = form.dataset.section || 'GATING';
+    let page = parseInt(form.dataset.page || '1', 10);
+
+    const csrf = document.querySelector('meta[name="_csrf"]')?.content;
+    const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
+
+    let pending = {};
+    let timer = null;
+
+    function keyFromInputName(name){
+      const m = name && name.match(/^answers\[(.+?)\]$/);
+      return m ? m[1] : null;
+    }
+
+    function queueDelta(key, value){
+      if (!key) return;
+      pending[key] = value;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => flush(false), 350);
+    }
+
+    async function flush(keepalive){
+      const delta = pending;
+      pending = {};
+      if (!Object.keys(delta).length) return;
+
+      const headers = {'Content-Type':'application/json'};
+      if (csrf && csrfHeader) headers[csrfHeader] = csrf;
+
+      try {
+        await fetch('/api/progress', {
+          method: 'POST',
+          headers,
+          keepalive: !!keepalive,
+          body: JSON.stringify({ section, page, answers: delta })
+        });
+      } catch (e) { /* ignore; next change will retry */ }
+    }
+
+    function onChange(e){
+      const t = e.target;
+      if (!t || !t.name) return;
+      const key = keyFromInputName(t.name);
+      if (!key) return;
+
+      let v;
+      if (t.type === 'radio') { if (!t.checked) return; v = t.value; }
+      else if (t.type === 'checkbox') { v = t.checked ? (t.value || 'on') : ''; }
+      else { v = t.value; }
+
+      queueDelta(key, v);
+    }
+
+    form.addEventListener('input', onChange, {passive:true});
+    form.addEventListener('change', onChange, {passive:true});
+    window.addEventListener('beforeunload', () => { if (timer) { clearTimeout(timer); flush(true); } });
+
+    // expose for other pages if needed
+    window.__acfProgressFlush = (keepalive) => flush(!!keepalive);
+  })();
+</script>
 </body>
 </html>

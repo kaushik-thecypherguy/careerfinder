@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:attr="lang=${session.uiLang != null ? session.uiLang : 'en'}">
+<head th:with="fallback=@{/result}">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Loading…</title>
+
+  <!-- If controller passed an explicit URL -->
+  <meta http-equiv="refresh"
+        th:if="${resultsUrl != null}"
+        th:content="|0;url=${resultsUrl}|"/>
+
+  <!-- Fallback to /result resolved with context path (no SpEL mixing with @{}) -->
+  <meta http-equiv="refresh"
+        th:if="${resultsUrl == null}"
+        th:content="|0;url=${fallback}|"/>
+
+  <style>
+    :root{ --bg:#f6f7fb; --text:#0f172a; }
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);
+         display:grid;place-items:center;
+         font-family:Inter,ui-sans-serif,-apple-system,Segoe UI,Roboto,Arial}
+    .big{font-weight:800;font-size:clamp(22px,6vw,44px);letter-spacing:.3px;text-align:center;padding:24px}
+  </style>
+</head>
+<body>
+<div class="big"
+     th:with="L=${session.uiLang != null ? session.uiLang : 'en'}"
+     th:text="${L=='hi' ? 'आपके परिणाम लोड हो रहे हैं…' :
+                 (L=='mr' ? 'तुमचे निकाल लोड होत आहेत…' :
+                            'Your results are loading…')}">
+  Your results are loading…
+</div>
+</body>
+</html>

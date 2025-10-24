@@ -1,5 +1,6 @@
 package com.acf.careerfinder.config;
 
+import com.acf.careerfinder.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -14,6 +15,12 @@ import java.util.Locale;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
+    private final UserService userService;
+
+    public WebConfig(UserService userService) {
+        this.userService = userService;
+    }
+
     private static Locale toLocale(Object langObj) {
         String lang = (langObj instanceof String s && !s.isBlank()) ? (String) langObj : "en";
         return switch (lang) {
@@ -23,15 +30,25 @@ public class WebConfig implements WebMvcConfigurer {
         };
     }
 
-    private HandlerInterceptor localeFromSessionInterceptor() {
+    private HandlerInterceptor localeFromAccountInterceptor() {
         return new HandlerInterceptor() {
             @Override
-            public boolean preHandle(HttpServletRequest request,
-                                     HttpServletResponse response,
-                                     Object handler) {
+            public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
                 HttpSession session = request.getSession(false);
-                Object uiLang = (session != null) ? session.getAttribute("uiLang") : null;
-                LocaleContextHolder.setLocale(toLocale(uiLang));
+
+                String fromDb = null;
+                if (session != null) {
+                    String email = (String) session.getAttribute("USER_EMAIL");
+                    if (email != null) {
+                        fromDb = userService.getUiLang(email).orElse(null);
+                    }
+                }
+                String fromSession = (session != null) ? (String) session.getAttribute("uiLang") : null;
+                String lang = (fromDb != null && !fromDb.isBlank()) ? fromDb : fromSession;
+
+                Locale locale = toLocale(lang);
+                LocaleContextHolder.setLocale(locale);
+                if (session != null) session.setAttribute("uiLang", locale.getLanguage());
                 return true;
             }
         };
@@ -39,6 +56,6 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(localeFromSessionInterceptor());
+        registry.addInterceptor(localeFromAccountInterceptor());
     }
 }

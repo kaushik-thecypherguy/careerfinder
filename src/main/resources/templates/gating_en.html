@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <meta name="_csrf" th:content="${_csrf?.token}">
+    <meta name="_csrf_header" th:content="${_csrf?.headerName}">
     <title>About you • Eligibility</title>
     <style>
         :root{--bg:#f8fafc;--card:#fff;--text:#0f172a;--muted:#64748b;--border:#e2e8f0;--accent:#2563eb;--accent-700:#1d4ed8}
@@ -22,6 +24,11 @@
         .muted{color:var(--muted)}
         .inline{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
         .select{padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:#fff;min-width:240px}
+
+        /* inline validation */
+        .q.error{border:1px solid #fecaca;background:#fff7f7;border-left:4px solid #ef4444}
+        .err{display:none;color:#b91c1c;font-size:.9rem;margin-top:6px}
+        .q.error .err{display:block}
     </style>
 </head>
 <body>
@@ -30,7 +37,8 @@
         <h1>About you (Eligibility & preferences)</h1>
         <p class="lead">These answers help us check job eligibility & fit. They do <b>not</b> affect your personality/trait score.</p>
 
-        <form th:action="@{/gating}" th:object="${form}" method="post">
+        <form id="gatingForm" th:action="@{/gating}" th:object="${form}" method="post" data-section="GATING" data-page="1">
+
             <input type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}"/>
 
             <!-- Q1 -->
@@ -43,6 +51,7 @@
                 <div class="opt"><input type="radio" id="q1E" th:name="${'answers['+'gate.Q1'+']'}" value="E" th:checked="${form.answers['gate.Q1']=='E'}"><label for="q1E">Diploma / ITI</label></div>
                 <div class="opt"><input type="radio" id="q1F" th:name="${'answers['+'gate.Q1'+']'}" value="F" th:checked="${form.answers['gate.Q1']=='F'}"><label for="q1F">Graduate (BA/BSc/BCom/BE etc.)</label></div>
                 <div class="opt"><input type="radio" id="q1G" th:name="${'answers['+'gate.Q1'+']'}" value="G" th:checked="${form.answers['gate.Q1']=='G'}"><label for="q1G">Post‑graduate or higher</label></div>
+                <div class="err" aria-live="polite"></div>
             </div>
 
             <!-- Q2 -->
@@ -54,6 +63,7 @@
                 <div class="opt"><input type="radio" id="q2D" th:name="${'answers['+'gate.Q2'+']'}" value="D" th:checked="${form.answers['gate.Q2']=='D'}"><label for="q2D">16–20 kg</label></div>
                 <div class="opt"><input type="radio" id="q2E" th:name="${'answers['+'gate.Q2'+']'}" value="E" th:checked="${form.answers['gate.Q2']=='E'}"><label for="q2E">21–25 kg</label></div>
                 <div class="opt"><input type="radio" id="q2F" th:name="${'answers['+'gate.Q2'+']'}" value="F" th:checked="${form.answers['gate.Q2']=='F'}"><label for="q2F">26 kg or more</label></div>
+                <div class="err" aria-live="polite"></div>
             </div>
 
             <!-- Q3 -->
@@ -61,6 +71,7 @@
                 <h3>Q3. Are you comfortable standing and moving for long periods (6–8 hours) in a shift?</h3>
                 <div class="opt"><input type="radio" id="q3A" th:name="${'answers['+'gate.Q3'+']'}" value="A" th:checked="${form.answers['gate.Q3']=='A'}"><label for="q3A">Yes</label></div>
                 <div class="opt"><input type="radio" id="q3B" th:name="${'answers['+'gate.Q3'+']'}" value="B" th:checked="${form.answers['gate.Q3']=='B'}"><label for="q3B">No</label></div>
+                <div class="err" aria-live="polite"></div>
             </div>
 
             <!-- Q4 -->
@@ -68,6 +79,7 @@
                 <h3>Q4. Are you comfortable working night shifts / rotational shifts?</h3>
                 <div class="opt"><input type="radio" id="q4A" th:name="${'answers['+'gate.Q4'+']'}" value="A" th:checked="${form.answers['gate.Q4']=='A'}"><label for="q4A">Yes</label></div>
                 <div class="opt"><input type="radio" id="q4B" th:name="${'answers['+'gate.Q4'+']'}" value="B" th:checked="${form.answers['gate.Q4']=='B'}"><label for="q4B">No</label></div>
+                <div class="err" aria-live="polite"></div>
             </div>
 
             <!-- Q5 -->
@@ -75,6 +87,7 @@
                 <h3>Q5. Are you comfortable working on weekends with a weekly off on another day?</h3>
                 <div class="opt"><input type="radio" id="q5A" th:name="${'answers['+'gate.Q5'+']'}" value="A" th:checked="${form.answers['gate.Q5']=='A'}"><label for="q5A">Yes</label></div>
                 <div class="opt"><input type="radio" id="q5B" th:name="${'answers['+'gate.Q5'+']'}" value="B" th:checked="${form.answers['gate.Q5']=='B'}"><label for="q5B">No</label></div>
+                <div class="err" aria-live="polite"></div>
             </div>
 
             <!-- Q6 -->
@@ -86,6 +99,7 @@
                 <div class="opt"><input type="radio" id="q6D" th:name="${'answers['+'gate.Q6'+']'}" value="D" th:checked="${form.answers['gate.Q6']=='D'}"><label for="q6D">Up to 20 km</label></div>
                 <div class="opt"><input type="radio" id="q6E" th:name="${'answers['+'gate.Q6'+']'}" value="E" th:checked="${form.answers['gate.Q6']=='E'}"><label for="q6E">21–30 km</label></div>
                 <div class="opt"><input type="radio" id="q6F" th:name="${'answers['+'gate.Q6'+']'}" value="F" th:checked="${form.answers['gate.Q6']=='F'}"><label for="q6F">More than 30 km</label></div>
+                <div class="err" aria-live="polite"></div>
             </div>
 
             <!-- Q7 -->
@@ -93,6 +107,7 @@
                 <h3>Q7. Do you have your own smartphone and can use apps daily for work (attendance, tasks, maps)?</h3>
                 <div class="opt"><input type="radio" id="q7A" th:name="${'answers['+'gate.Q7'+']'}" value="A" th:checked="${form.answers['gate.Q7']=='A'}"><label for="q7A">Yes</label></div>
                 <div class="opt"><input type="radio" id="q7B" th:name="${'answers['+'gate.Q7'+']'}" value="B" th:checked="${form.answers['gate.Q7']=='B'}"><label for="q7B">No</label></div>
+                <div class="err" aria-live="polite"></div>
             </div>
 
             <!-- Q8 -->
@@ -102,6 +117,7 @@
                 <div class="opt"><input type="radio" id="q8B" th:name="${'answers['+'gate.Q8'+']'}" value="B" th:checked="${form.answers['gate.Q8']=='B'}"><label for="q8B">Basic (files, email, copy‑paste, basic typing)</label></div>
                 <div class="opt"><input type="radio" id="q8C" th:name="${'answers['+'gate.Q8'+']'}" value="C" th:checked="${form.answers['gate.Q8']=='C'}"><label for="q8C">Comfortable (Excel data‑entry, simple formulas, printing/scanning)</label></div>
                 <div class="opt"><input type="radio" id="q8D" th:name="${'answers['+'gate.Q8'+']'}" value="D" th:checked="${form.answers['gate.Q8']=='D'}"><label for="q8D">Advanced (shortcuts, formatting, PDFs, simple troubleshooting)</label></div>
+                <div class="err" aria-live="polite"></div>
             </div>
 
             <!-- Q9 -->
@@ -111,6 +127,7 @@
                 <div class="opt"><input type="radio" id="q9B" th:name="${'answers['+'gate.Q9'+']'}" value="B" th:checked="${form.answers['gate.Q9']=='B'}"><label for="q9B">Basic reading only (short messages, signs)</label></div>
                 <div class="opt"><input type="radio" id="q9C" th:name="${'answers['+'gate.Q9'+']'}" value="C" th:checked="${form.answers['gate.Q9']=='C'}"><label for="q9C">Basic reading + speaking (simple conversations)</label></div>
                 <div class="opt"><input type="radio" id="q9D" th:name="${'answers['+'gate.Q9'+']'}" value="D" th:checked="${form.answers['gate.Q9']=='D'}"><label for="q9D">Comfortable / fluent</label></div>
+                <div class="err" aria-live="polite"></div>
             </div>
 
             <!-- Q10 -->
@@ -120,6 +137,7 @@
                 <div class="opt"><input type="radio" id="q10B" th:name="${'answers['+'gate.Q10'+']'}" value="B" th:checked="${form.answers['gate.Q10']=='B'}"><label for="q10B">Basic (can manage simple interactions)</label></div>
                 <div class="opt"><input type="radio" id="q10C" th:name="${'answers['+'gate.Q10'+']'}" value="C" th:checked="${form.answers['gate.Q10']=='C'}"><label for="q10C">Good (can handle most conversations)</label></div>
                 <div class="opt"><input type="radio" id="q10D" th:name="${'answers['+'gate.Q10'+']'}" value="D" th:checked="${form.answers['gate.Q10']=='D'}"><label for="q10D">Fluent</label></div>
+                <div class="err" aria-live="polite"></div>
             </div>
 
             <!-- Q11 -->
@@ -128,6 +146,7 @@
                 <div class="opt"><input type="radio" id="q11A" th:name="${'answers['+'gate.Q11'+']'}" value="A" th:checked="${form.answers['gate.Q11']=='A'}"><label for="q11A">Yes – ready to submit</label></div>
                 <div class="opt"><input type="radio" id="q11B" th:name="${'answers['+'gate.Q11'+']'}" value="B" th:checked="${form.answers['gate.Q11']=='B'}"><label for="q11B">Partly – can arrange within 1–2 weeks</label></div>
                 <div class="opt"><input type="radio" id="q11C" th:name="${'answers['+'gate.Q11'+']'}" value="C" th:checked="${form.answers['gate.Q11']=='C'}"><label for="q11C">No</label></div>
+                <div class="err" aria-live="polite"></div>
             </div>
 
             <!-- Q12 -->
@@ -141,6 +160,7 @@
                 <div class="muted" style="font-size:.9rem;margin-top:6px">
                     Note: Licence is <b>not</b> used to infer your age. It’s checked only for roles that require driving.
                 </div>
+                <div class="err" aria-live="polite"></div>
             </div>
 
             <!-- Q13 -->
@@ -148,6 +168,7 @@
                 <h3>Q13. Do you have regular access to a two‑wheeler for work (own or family’s)?</h3>
                 <div class="opt"><input type="radio" id="q13A" th:name="${'answers['+'gate.Q13'+']'}" value="A" th:checked="${form.answers['gate.Q13']=='A'}"><label for="q13A">Yes</label></div>
                 <div class="opt"><input type="radio" id="q13B" th:name="${'answers['+'gate.Q13'+']'}" value="B" th:checked="${form.answers['gate.Q13']=='B'}"><label for="q13B">No</label></div>
+                <div class="err" aria-live="polite"></div>
             </div>
 
             <!-- Q14 -->
@@ -156,6 +177,7 @@
                 <div class="opt"><input type="radio" id="q14A" th:name="${'answers['+'gate.Q14'+']'}" value="A" th:checked="${form.answers['gate.Q14']=='A'}"><label for="q14A">I already have a valid PSARA certificate</label></div>
                 <div class="opt"><input type="radio" id="q14B" th:name="${'answers['+'gate.Q14'+']'}" value="B" th:checked="${form.answers['gate.Q14']=='B'}"><label for="q14B">Completed training – certificate pending</label></div>
                 <div class="opt"><input type="radio" id="q14C" th:name="${'answers['+'gate.Q14'+']'}" value="C" th:checked="${form.answers['gate.Q14']=='C'}"><label for="q14C">I do not have PSARA</label></div>
+                <div class="err" aria-live="polite"></div>
             </div>
 
             <!-- Q15 -->
@@ -164,6 +186,7 @@
                 <div class="opt"><input type="radio" id="q15A" th:name="${'answers['+'gate.Q15'+']'}" value="A" th:checked="${form.answers['gate.Q15']=='A'}"><label for="q15A">I currently have an AEP</label></div>
                 <div class="opt"><input type="radio" id="q15B" th:name="${'answers['+'gate.Q15'+']'}" value="B" th:checked="${form.answers['gate.Q15']=='B'}"><label for="q15B">No AEP (willing to apply if employer sponsors)</label></div>
                 <div class="opt"><input type="radio" id="q15C" th:name="${'answers['+'gate.Q15'+']'}" value="C" th:checked="${form.answers['gate.Q15']=='C'}"><label for="q15C">No AEP and not willing</label></div>
+                <div class="err" aria-live="polite"></div>
             </div>
 
             <!-- Q16 -->
@@ -172,6 +195,7 @@
                 <div class="opt"><input type="radio" id="q16A" th:name="${'answers['+'gate.Q16'+']'}" value="A" th:checked="${form.answers['gate.Q16']=='A'}"><label for="q16A">Yes – willing and no issues expected</label></div>
                 <div class="opt"><input type="radio" id="q16B" th:name="${'answers['+'gate.Q16'+']'}" value="B" th:checked="${form.answers['gate.Q16']=='B'}"><label for="q16B">Unsure (need to check)</label></div>
                 <div class="opt"><input type="radio" id="q16C" th:name="${'answers['+'gate.Q16'+']'}" value="C" th:checked="${form.answers['gate.Q16']=='C'}"><label for="q16C">No / not willing</label></div>
+                <div class="err" aria-live="polite"></div>
             </div>
 
             <!-- Q17 -->
@@ -180,6 +204,7 @@
                 <div class="opt"><input type="radio" id="q17A" th:name="${'answers['+'gate.Q17'+']'}" value="A" th:checked="${form.answers['gate.Q17']=='A'}"><label for="q17A">Normal / adequate vision (with or without glasses)</label></div>
                 <div class="opt"><input type="radio" id="q17B" th:name="${'answers['+'gate.Q17'+']'}" value="B" th:checked="${form.answers['gate.Q17']=='B'}"><label for="q17B">Significant vision issues even with glasses</label></div>
                 <div class="opt"><input type="radio" id="q17C" th:name="${'answers['+'gate.Q17'+']'}" value="C" th:checked="${form.answers['gate.Q17']=='C'}"><label for="q17C">Not sure</label></div>
+                <div class="err" aria-live="polite"></div>
             </div>
 
             <!-- Q18 -->
@@ -188,6 +213,7 @@
                 <div class="opt"><input type="radio" id="q18A" th:name="${'answers['+'gate.Q18'+']'}" value="A" th:checked="${form.answers['gate.Q18']=='A'}"><label for="q18A">Normal colour vision</label></div>
                 <div class="opt"><input type="radio" id="q18B" th:name="${'answers['+'gate.Q18'+']'}" value="B" th:checked="${form.answers['gate.Q18']=='B'}"><label for="q18B">Diagnosed colour‑vision deficiency</label></div>
                 <div class="opt"><input type="radio" id="q18C" th:name="${'answers['+'gate.Q18'+']'}" value="C" th:checked="${form.answers['gate.Q18']=='C'}"><label for="q18C">Not sure</label></div>
+                <div class="err" aria-live="polite"></div>
             </div>
 
             <!-- Q19 -->
@@ -198,6 +224,7 @@
                 <div class="opt"><input type="radio" id="q19C" th:name="${'answers['+'gate.Q19'+']'}" value="C" th:checked="${form.answers['gate.Q19']=='C'}"><label for="q19C">160–164 cm</label></div>
                 <div class="opt"><input type="radio" id="q19D" th:name="${'answers['+'gate.Q19'+']'}" value="D" th:checked="${form.answers['gate.Q19']=='D'}"><label for="q19D">165–169 cm</label></div>
                 <div class="opt"><input type="radio" id="q19E" th:name="${'answers['+'gate.Q19'+']'}" value="E" th:checked="${form.answers['gate.Q19']=='E'}"><label for="q19E">170 cm or more</label></div>
+                <div class="err" aria-live="polite"></div>
             </div>
 
             <!-- Q20 -->
@@ -206,6 +233,7 @@
                 <div class="opt"><input type="radio" id="q20A" th:name="${'answers['+'gate.Q20'+']'}" value="A" th:checked="${form.answers['gate.Q20']=='A'}"><label for="q20A">Yes – documents available</label></div>
                 <div class="opt"><input type="radio" id="q20B" th:name="${'answers['+'gate.Q20'+']'}" value="B" th:checked="${form.answers['gate.Q20']=='B'}"><label for="q20B">Partly – some documents; can arrange others soon</label></div>
                 <div class="opt"><input type="radio" id="q20C" th:name="${'answers['+'gate.Q20'+']'}" value="C" th:checked="${form.answers['gate.Q20']=='C'}"><label for="q20C">No</label></div>
+                <div class="err" aria-live="polite"></div>
             </div>
 
             <!-- Q21 -->
@@ -213,6 +241,7 @@
                 <h3>Q21. Have you completed any formal safety induction (plant/site/hospital) or basic safety training?</h3>
                 <div class="opt"><input type="radio" id="q21A" th:name="${'answers['+'gate.Q21'+']'}" value="A" th:checked="${form.answers['gate.Q21']=='A'}"><label for="q21A">Yes</label></div>
                 <div class="opt"><input type="radio" id="q21B" th:name="${'answers['+'gate.Q21'+']'}" value="B" th:checked="${form.answers['gate.Q21']=='B'}"><label for="q21B">No</label></div>
+                <div class="err" aria-live="polite"></div>
             </div>
 
             <!-- Q22 -->
@@ -220,6 +249,7 @@
                 <h3>Q22. Are you comfortable with field travel/intra‑city visits as part of the job?</h3>
                 <div class="opt"><input type="radio" id="q22A" th:name="${'answers['+'gate.Q22'+']'}" value="A" th:checked="${form.answers['gate.Q22']=='A'}"><label for="q22A">Yes</label></div>
                 <div class="opt"><input type="radio" id="q22B" th:name="${'answers['+'gate.Q22'+']'}" value="B" th:checked="${form.answers['gate.Q22']=='B'}"><label for="q22B">No</label></div>
+                <div class="err" aria-live="polite"></div>
             </div>
 
             <!-- Q23 -->
@@ -227,6 +257,7 @@
                 <h3>Q23. Are you comfortable working at heights (rooftops/towers/ladders) with safety gear?</h3>
                 <div class="opt"><input type="radio" id="q23A" th:name="${'answers['+'gate.Q23'+']'}" value="A" th:checked="${form.answers['gate.Q23']=='A'}"><label for="q23A">Yes</label></div>
                 <div class="opt"><input type="radio" id="q23B" th:name="${'answers['+'gate.Q23'+']'}" value="B" th:checked="${form.answers['gate.Q23']=='B'}"><label for="q23B">No</label></div>
+                <div class="err" aria-live="polite"></div>
             </div>
 
             <!-- Q24 -->
@@ -238,9 +269,10 @@
                 <div class="opt"><input type="radio" id="q24D" th:name="${'answers['+'gate.Q24'+']'}" value="D" th:checked="${form.answers['gate.Q24']=='D'}"><label for="q24D">36–45 WPM</label></div>
                 <div class="opt"><input type="radio" id="q24E" th:name="${'answers['+'gate.Q24'+']'}" value="E" th:checked="${form.answers['gate.Q24']=='E'}"><label for="q24E">46–60 WPM</label></div>
                 <div class="opt"><input type="radio" id="q24F" th:name="${'answers['+'gate.Q24'+']'}" value="F" th:checked="${form.answers['gate.Q24']=='F'}"><label for="q24F">More than 60 WPM</label></div>
+                <div class="err" aria-live="polite"></div>
             </div>
 
-            <!-- Q25 Location (unchanged) -->
+            <!-- Q25 Location -->
             <div class="q">
                 <h3>Q25. Where do you live? (Maharashtra only)</h3>
                 <div class="opt inline"
@@ -264,20 +296,22 @@
                                 th:selected="${selectedDist == dist}">Pune</option>
                     </select>
                 </div>
+                <div class="err" aria-live="polite"></div>
             </div>
 
-            <!-- NEW: Q26 Age -->
+            <!-- Q26 Age (now REQUIRED) -->
             <div class="q">
                 <h3>Q26. What is your age?</h3>
                 <div class="opt">
-                    <input type="number" min="14" max="70" step="1"
+                    <input type="number" min="14" max="70" step="1" required
                            class="select" style="width:120px"
                            th:name="${'answers['+'gate.Q26_age'+']'}"
                            th:value="${form.answers['gate.Q26_age']}"/>
                     <span class="muted" style="font-size:.9rem">
-                        Optional. Used only where employers set a minimum age (e.g., 18+).
+                        Required. Used only where employers set a minimum age (e.g., 18+).
                     </span>
                 </div>
+                <div class="err" aria-live="polite"></div>
             </div>
 
             <div class="actions">
@@ -287,5 +321,170 @@
         </form>
     </section>
 </main>
+
+<script>
+    (function(){
+      const $  = (s,r)=> (r||document).querySelector(s);
+      const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
+
+      // ---- messages ----
+      const MSG = {
+        pick: 'Please pick an option here.',
+        district: 'Please select your district.',
+        age: 'Please enter an age between 14 and 70.'
+      };
+
+      // ---- validation helpers ----
+      function clearErr(q){
+        q.classList.remove('error');
+        const e = q.querySelector('.err');
+        if(e) e.textContent = '';
+      }
+      function setErr(q, msg){
+        q.classList.add('error');
+        let e = q.querySelector('.err');
+        if(!e){ e = document.createElement('div'); e.className='err'; e.setAttribute('aria-live','polite'); q.appendChild(e); }
+        e.textContent = msg;
+      }
+
+      function validate(){
+        let firstBad = null;
+
+        // Q1..Q24 radio groups
+        const groupNames = Array.from(new Set($$('input[type="radio"][name^="answers[gate.Q"]').map(x=>x.name)));
+        groupNames.forEach(name=>{
+          const isChecked = $$(`input[type="radio"][name="${name}"]:checked`).length > 0;
+          if(!isChecked){
+            const q = $$(`input[type="radio"][name="${name}"]`)[0].closest('.q');
+            setErr(q, MSG.pick);
+            if(!firstBad) firstBad = q;
+          }
+        });
+
+        // Q25 district
+        const dist = document.querySelector('select[name="answers[gate.Q25_district]"]');
+        if(dist && !dist.value){
+          const q = dist.closest('.q'); setErr(q, MSG.district); if(!firstBad) firstBad = q;
+        }
+
+        // Q26 age 14..70
+        const age = document.querySelector('input[name="answers[gate.Q26_age]"]');
+        if(age){
+          const v = (age.value || '').trim(); const n = Number(v);
+          const ok = v !== '' && !Number.isNaN(n) && n >= 14 && n <= 70;
+          if(!ok){ const q = age.closest('.q'); setErr(q, MSG.age); if(!firstBad) firstBad = q; }
+        }
+
+        if(firstBad){
+          firstBad.scrollIntoView({behavior:'smooth', block:'center'});
+          const f = firstBad.querySelector('input,select,textarea');
+          if(f) try{ f.focus({preventScroll:true}); }catch(e){}
+          return false;
+        }
+        return true;
+      }
+
+      // ---- NEW: tell Questionnaire to start fresh on the first ever attempt in this tab ----
+      const QN_STORE_KEY = 'acf_questionnaire_answers';
+      function markFreshStartForQuestionnaire(){
+        // If the user has not started a questionnaire in this tab, wipe old localStorage
+        if(!sessionStorage.getItem('qn_attempt')){
+          try { localStorage.removeItem(QN_STORE_KEY); } catch(e){}
+          // Set a one-time flag so questionnaire page can also clear before hydrating
+          sessionStorage.setItem('qn_reset_once','1');
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', ()=>{
+        const form = document.getElementById('gatingForm');
+
+        if(form){
+          form.addEventListener('submit', (ev)=>{
+            // clear prior errors
+            $$('.q').forEach(clearErr);
+            if(!validate()){
+              ev.preventDefault();
+              ev.stopPropagation();
+              return;
+            }
+            // valid → mark fresh-start if needed
+            markFreshStartForQuestionnaire();
+          });
+        }
+
+        // Clear error when user interacts
+        document.addEventListener('change', (e)=>{
+          const q = e.target && e.target.closest && e.target.closest('.q');
+          if(q) clearErr(q);
+        });
+      });
+    })();
+</script>
+<script>
+    (function(){
+      const form = document.querySelector('#gatingForm');
+      if (!form) return;
+
+      const section = form.dataset.section || 'GATING';
+      let page = parseInt(form.dataset.page || '1', 10);
+
+      const csrf = document.querySelector('meta[name="_csrf"]')?.content;
+      const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
+
+      let pending = {};
+      let timer = null;
+
+      function keyFromInputName(name){
+        const m = name && name.match(/^answers\[(.+?)\]$/);
+        return m ? m[1] : null;
+      }
+
+      function queueDelta(key, value){
+        if (!key) return;
+        pending[key] = value;
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => flush(false), 350);
+      }
+
+      async function flush(keepalive){
+        const delta = pending;
+        pending = {};
+        if (!Object.keys(delta).length) return;
+
+        const headers = {'Content-Type':'application/json'};
+        if (csrf && csrfHeader) headers[csrfHeader] = csrf;
+
+        try {
+          await fetch('/api/progress', {
+            method: 'POST',
+            headers,
+            keepalive: !!keepalive,
+            body: JSON.stringify({ section, page, answers: delta })
+          });
+        } catch (e) { /* ignore; next change will retry */ }
+      }
+
+      function onChange(e){
+        const t = e.target;
+        if (!t || !t.name) return;
+        const key = keyFromInputName(t.name);
+        if (!key) return;
+
+        let v;
+        if (t.type === 'radio') { if (!t.checked) return; v = t.value; }
+        else if (t.type === 'checkbox') { v = t.checked ? (t.value || 'on') : ''; }
+        else { v = t.value; }
+
+        queueDelta(key, v);
+      }
+
+      form.addEventListener('input', onChange, {passive:true});
+      form.addEventListener('change', onChange, {passive:true});
+      window.addEventListener('beforeunload', () => { if (timer) { clearTimeout(timer); flush(true); } });
+
+      // expose for other pages if needed
+      window.__acfProgressFlush = (keepalive) => flush(!!keepalive);
+    })();
+</script>
 </body>
 </html>

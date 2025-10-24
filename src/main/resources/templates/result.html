@@ -1,9 +1,14 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      th:attr="lang=${session.uiLang != null ? session.uiLang : 'en'}">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title th:text="${rec.title}">Result</title>
+
+  <!-- user scope for localStorage (same as questionnaire) -->
+  <meta name="acf:user" th:content="${session.USER_EMAIL != null ? session.USER_EMAIL : 'guest'}"/>
+
   <style>
     :root{
       --bg:#f6f7fb; --card:#ffffff; --text:#0f172a; --muted:#64748b; --border:#e5e7eb;
@@ -20,6 +25,13 @@
     .muted{color:var(--muted)}
     .small{font-size:.92rem}
 
+    /* Buttons (match your questionnaire look) */
+    .btn{padding:10px 16px;border-radius:12px;border:1px solid var(--accent);background:var(--accent);
+         color:#fff;font-weight:800;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
+    .btn:hover{background:var(--accent-700)}
+    .btn:focus{outline:3px solid rgba(37,99,235,.35);outline-offset:2px}
+
+    /* Job blocks */
     details.job{border:1px solid var(--border);border-radius:12px;padding:14px 14px;margin:12px 0;background:#fff}
     details.job[open]{box-shadow:0 4px 20px rgba(0,0,0,.06)}
     summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:14px}
@@ -32,9 +44,9 @@
     .pill.ok{background:#ecfdf5;color:#065f46}
     .pill.bad{background:#fef2f2;color:#991b1b}
     .val{min-width:52px;text-align:right;font-variant-numeric:tabular-nums;color:#334155}
-    .rowline{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
     .block{margin-top:12px;border-top:1px dashed var(--border);padding-top:12px}
 
+    /* Bars (traits/domains) */
     .row{display:flex;align-items:center;gap:10px;margin:8px 0}
     .trait{flex:0 0 60%}
     .meter{flex:1;height:12px;border-radius:999px;background:#e5e7eb;overflow:hidden}
@@ -43,124 +55,171 @@
 
     .badge{display:inline-block;padding:6px 10px;border-radius:999px;background:#eef2ff;color:#3730a3;font-weight:700;font-size:.85rem}
     a.link{color:var(--accent);font-weight:700;text-decoration:none}
-    a.link:hover{color:var(--accent-700);text-decoration:underline}
+    a.link:hover{color:#1d4ed8;text-decoration:underline}
 
-    .rail details{margin:10px 0}
-    .rail summary{font-weight:700;color:#1f2937}
-    .rail .content{margin-top:10px}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:8px;border-bottom:1px solid var(--border)}
-    th{text-align:left;color:#475569}
+    /* ===== Page Loader (big message) ===== */
+    body.loading main{display:none;}
+    #pageLoader{
+      position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+      background:var(--bg); color:var(--text); z-index:9999;
+      font-weight:800; text-align:center;
+      font-size:clamp(22px, 6vw, 42px);
+      padding:24px;
+    }
   </style>
 </head>
-<body>
-<main class="wrap">
 
-  <!-- CENTER: Top‑5 + Could‑have‑been -->
+<body class="loading">
+<!-- Big loading message (auto-localized) -->
+<div id="pageLoader" role="status" aria-live="polite"
+     th:with="L=${session.uiLang != null ? session.uiLang : 'en'}"
+     th:text="${L=='hi' ? 'आपके परिणाम लोड हो रहे हैं…' :
+               (L=='mr' ? 'तुमचे निकाल लोड होत आहेत…' :
+                          'Your results are loading…')}">
+  Your results are loading…
+</div>
+
+<main class="wrap"
+      th:with="
+        L=${session.uiLang != null ? session.uiLang : 'en'},
+
+        t_top5=${L=='hi' ? 'टॉप ५ सेक्टर (अभी पात्र)' :
+                 (L=='mr' ? 'टॉप ५ क्षेत्रे (सध्या पात्र)' : 'Top 5 sectors (Eligible now)')},
+
+        t_lead=${L=='hi' ? 'आपके गुण‑प्रोफाइल और वर्तमान पात्रता के आधार पर ये आपके लिये सबसे उपयुक्त क्षेत्र हैं।' :
+                 (L=='mr' ? 'तुमच्या गुणवैशिष्ट्य‑प्रोफाइल व सध्याच्या पात्रतेनुसार ही क्षेत्रे तुमच्यासाठी सर्वोत्तम जुळतात.' :
+                            'These are your best fits based on your trait profile and current eligibility.')},
+
+        t_whyfit=${L=='hi' ? 'क्यों फिट:' : (L=='mr' ? 'का जुळते:' : 'Why fit:')},
+        t_ok=${L=='hi' ? 'पात्र' : (L=='mr' ? 'पात्र' : 'Eligible')},
+        t_bad=${L=='hi' ? 'अपात्र' : (L=='mr' ? 'अपात्र' : 'Not eligible')},
+
+        t_could=${L=='hi' ? 'यदि पात्र होते तो टॉप‑५ में हो सकते थे' :
+                 (L=='mr' ? 'पात्र असता तर टॉप‑५ मध्ये असू शकली असती' :
+                            'Could have been Top‑5 if you were eligible')},
+
+        t_missing=${L=='hi' ? 'क्या कमी है:' : (L=='mr' ? 'काय कमी आहे:' : 'What’s missing:')},
+
+        t_noneOk=${L=='hi' ? 'अभी कोई पात्र क्षेत्र नहीं। नीचे “यदि पात्र…” सेक्शन देखें।' :
+                   (L=='mr' ? 'सध्या पात्र क्षेत्रे नाहीत. खाली “पात्र असता…” विभाग पाहा.' :
+                              'No eligible sectors yet. Check “Could have been Top‑5” below for how to qualify.')},
+
+        t_noneNear=${L=='hi' ? 'अभी कुछ नहीं — बढ़िया! आप पहले से ही अपने सर्वोत्तम मेलों के लिए पात्र हैं।' :
+                     (L=='mr' ? 'सध्या काहीही नाही — छान! तुम्ही आधीच सर्वोत्तम जुळणाऱ्या क्षेत्रांसाठी पात्र आहात.' :
+                                'None for now — great! You’re eligible for your best matches already.')},
+
+        t_badge=${L=='hi' ? 'प्रोफाइल व उत्तर' : (L=='mr' ? 'प्रोफाइल व उत्तरे' : 'Profile & Answers')},
+        t_trait=${L=='hi' ? 'गुण‑प्रोफाइल (०–१००)' : (L=='mr' ? 'गुणवैशिष्ट्य प्रोफाइल (०–१००)' : 'Trait profile (0–100)')},
+        t_break=${L=='hi' ? 'ब्रेकडाउन (IPIP, SJT व अंतिम)' :
+                  (L=='mr' ? 'ब्रेकडाउन (IPIP, SJT व अंतिम)' : 'Breakdown (IPIP vs SJT vs Final)')},
+        t_domains=${L=='hi' ? 'डोमेन (OCEAN)' : (L=='mr' ? 'डोमेन (OCEAN)' : 'Domains (OCEAN)')},
+        t_answers=${L=='hi' ? 'आपके उत्तर' : (L=='mr' ? 'तुमची उत्तरे' : 'Your answers')},
+        t_noans=${L=='hi' ? 'कोई उत्तर नहीं मिला।' : (L=='mr' ? 'उत्तरे आढळली नाहीत.' : 'No answers found.')},
+        t_tblTrait=${L=='hi' ? 'गुण' : (L=='mr' ? 'गुण' : 'Trait')},
+        t_tblFinal=${L=='hi' ? 'अंतिम' : (L=='mr' ? 'अंतिम' : 'Final')},
+        t_edit=${L=='hi' ? 'अपने उत्तर संपादित करें' :
+                (L=='mr' ? 'आपली उत्तरे संपादित करा' : 'Edit your answers')}
+      ">
+
+  <!-- LEFT: Top‑5 + Near‑miss -->
   <section class="card">
-    <h1>Top 5 sectors (Eligible now)</h1>
-    <p class="lead">These are your best fits based on your trait profile and current eligibility.</p>
+    <h1 th:text="${t_top5}">Top 5 sectors (Eligible now)</h1>
+    <p class="lead" th:text="${t_lead}">
+      These are your best fits based on your trait profile and current eligibility.
+    </p>
 
     <div th:if="${topEligible != null && !#lists.isEmpty(topEligible)}">
-      <details class="job" th:each="s : ${topEligible}"
-               th:attr="data-sector-id=${s.id}, data-detail='full'">
+      <details class="job"
+               th:each="s, stat : ${topEligible}"
+               th:attr="data-sector-id=${s.id}, data-detail='full', open=${stat.index==0}">
         <summary>
           <span class="chev">▶</span>
           <div style="flex:1">
             <div class="s-title" th:text="${s.name}">Sector name</div>
-            <div class="s-fit">Why fit:
+            <div class="s-fit" th:text="${t_whyfit}">Why fit:</div>
+            <div class="s-fit">
               <span th:text="${#strings.listJoin(s.topContrib, ', ')}">Trait A, Trait B, Trait C</span>
             </div>
           </div>
           <div class="val" th:text="${#numbers.formatDecimal(s.score, 1, 1)}">0.0</div>
-          <span class="pill ok">Eligible</span>
+          <span class="pill ok" th:text="${t_ok}">Eligible</span>
         </summary>
 
         <div class="block">
-          <!-- advice container (no old placeholder text) -->
           <div class="advice" data-state="empty"></div>
         </div>
       </details>
     </div>
 
-    <div th:if="${topEligible == null || #lists.isEmpty(topEligible)}" class="muted">
+    <div th:if="${topEligible == null || #lists.isEmpty(topEligible)}" class="muted"
+         th:text="${t_noneOk}">
       No eligible sectors yet. Check “Could have been Top‑5” below for how to qualify.
     </div>
 
-    <h2 style="margin-top:18px">Could have been Top‑5 if you were eligible</h2>
+    <h2 style="margin-top:18px" th:text="${t_could}">
+      Could have been Top‑5 if you were eligible
+    </h2>
 
-    <p class="small muted"
-       th:if="${eligibleCutoff != null}"
-       th:text="|Shown because score ≥ cutoff ${#numbers.formatDecimal(eligibleCutoff, 1, 1)}|">
+    <p class="small muted" th:if="${eligibleCutoff != null}"
+       th:text="${L=='hi' ? ('कट‑ऑफ ' + #numbers.formatDecimal(eligibleCutoff,1,1) + ' से अधिक होने पर दिखाया गया है') :
+                (L=='mr' ? ('कट‑ऑफ ' + #numbers.formatDecimal(eligibleCutoff,1,1) + ' पेक्षा गुण जास्त असल्याने दाखवले आहे') :
+                           ('Shown because score ≥ cutoff ' + #numbers.formatDecimal(eligibleCutoff,1,1)))}">
       Shown because score ≥ cutoff 0.0
     </p>
 
     <div th:if="${nearMiss != null && !#lists.isEmpty(nearMiss)}">
-      <details class="job" th:each="s : ${nearMiss}"
-               th:attr="data-sector-id=${s.id}, data-detail='brief'">
+      <details class="job"
+               th:each="s, stat : ${nearMiss}"
+               th:attr="data-sector-id=${s.id}, data-detail='brief', open=${stat.index==0}">
         <summary>
           <span class="chev">▶</span>
           <div style="flex:1">
             <div class="s-title" th:text="${s.name}">Sector name</div>
-            <div class="s-fit">Why fit:
+            <div class="s-fit" th:text="${t_whyfit}">Why fit:</div>
+            <div class="s-fit">
               <span th:text="${#strings.listJoin(s.topContrib, ', ')}">Trait A, Trait B, Trait C</span>
             </div>
           </div>
           <div class="val" th:text="${#numbers.formatDecimal(s.score, 1, 1)}">0.0</div>
-          <span class="pill bad">Not eligible</span>
+          <span class="pill bad" th:text="${t_bad}">Not eligible</span>
         </summary>
 
         <div class="block" th:if="${s.reasons != null && !#lists.isEmpty(s.reasons)}">
-          <div class="small" style="color:#991b1b;font-weight:700">What’s missing:</div>
+          <div class="small" style="color:#991b1b;font-weight:700" th:text="${t_missing}">What’s missing:</div>
           <ul class="small" style="margin:6px 0 0 18px;color:#475569">
             <li th:each="r : ${s.reasons}" th:text="${r}">Eligibility reason</li>
           </ul>
         </div>
 
         <div class="block">
-          <!-- advice container for brief card too -->
           <div class="advice" data-state="empty"></div>
         </div>
       </details>
     </div>
 
-    <div th:if="${nearMiss == null || #lists.isEmpty(nearMiss)}" class="muted">
+    <div th:if="${nearMiss == null || #lists.isEmpty(nearMiss)}" class="muted"
+         th:text="${t_noneNear}">
       None for now — great! You’re eligible for your best matches already.
     </div>
   </section>
 
   <!-- RIGHT RAIL -->
   <aside class="card rail">
-    <div class="badge">Profile & Answers</div>
+    <div class="badge" th:text="${t_badge}">Profile & Answers</div>
 
     <details>
-      <summary>Summary & Next steps</summary>
+      <summary th:text="${t_trait}">Trait profile (0–100)</summary>
       <div class="content">
-        <h2 style="margin:10px 0 6px" th:text="${rec.title}">Your result</h2>
-        <p class="lead" th:text="${rec.summary}">Summary goes here</p>
-
-        <h3 style="margin:12px 0 6px" th:text="${rec.careersTitle}">Suggested careers/trades</h3>
-        <ul style="margin-top:6px">
-          <li th:each="c : ${rec.suggestedCareers}">
-            <a class="link" th:href="${c.href}" th:text="${c.label}" target="_blank" rel="noopener">Career</a>
-          </li>
-        </ul>
-
-        <h3 style="margin:12px 0 6px" th:text="${rec.nextTitle}">Next steps</h3>
-        <ul style="margin-top:6px">
-          <li th:each="s : ${rec.nextSteps}" th:text="${s}">Step</li>
-        </ul>
-      </div>
-    </details>
-
-    <details>
-      <summary>Trait profile (0–100)</summary>
-      <div class="content">
-        <p class="small muted">Final = 60% IPIP + 40% SJT per trait.</p>
+        <p class="small muted">
+          <span th:text="${L=='hi' ? 'अंतिम = प्रत्येक गुण के लिए ६०% IPIP + ४०% SJT.' :
+                          (L=='mr' ? 'अंतिम = प्रत्येक गुणासाठी ६०% IPIP + ४०% SJT.' :
+                                     'Final = 60% IPIP + 40% SJT per trait.')}">
+            Final = 60% IPIP + 40% SJT per trait.
+          </span>
+        </p>
         <div th:each="e : ${profile.traitFinal0to100().entrySet()}">
           <div class="row">
-            <div class="trait"
-                 th:text="${T(com.acf.careerfinder.psychometrics.ScoringService).traitLabel(e.key)}">Trait name</div>
+            <div class="trait" th:text="${@labels.trait(e.key) != null ? @labels.trait(e.key) : e.key}">Trait</div>
             <div class="meter"><div class="fill" th:style="${'width:' + e.value + '%'}"></div></div>
             <div class="valbar" th:text="${#numbers.formatDecimal(e.value, 1, 1)}">0.0</div>
           </div>
@@ -169,15 +228,19 @@
     </details>
 
     <details>
-      <summary>Breakdown (IPIP vs SJT vs Final)</summary>
+      <summary th:text="${t_break}">Breakdown (IPIP vs SJT vs Final)</summary>
       <div class="content">
         <table>
           <thead>
-          <tr><th>Trait</th><th>IPIP</th><th>SJT</th><th>Final</th></tr>
+          <tr>
+            <th th:text="${t_tblTrait}">Trait</th>
+            <th>IPIP</th><th>SJT</th>
+            <th th:text="${t_tblFinal}">Final</th>
+          </tr>
           </thead>
           <tbody>
           <tr th:each="e : ${profile.traitFinal0to100().entrySet()}">
-            <td th:text="${T(com.acf.careerfinder.psychometrics.ScoringService).traitLabel(e.key)}">Trait</td>
+            <td th:text="${@labels.trait(e.key) != null ? @labels.trait(e.key) : e.key}">Trait</td>
             <td th:text="${#numbers.formatDecimal(profile.traitFromIpip0to100().get(e.key), 1, 1)}">0.0</td>
             <td th:text="${#numbers.formatDecimal(profile.traitSjt0to100().get(e.key), 1, 1)}">0.0</td>
             <td th:text="${#numbers.formatDecimal(e.value, 1, 1)}">0.0</td>
@@ -188,12 +251,11 @@
     </details>
 
     <details>
-      <summary>Domains (OCEAN)</summary>
+      <summary th:text="${t_domains}">Domains (OCEAN)</summary>
       <div class="content">
         <div th:each="d : ${profile.ocean0to100().entrySet()}">
           <div class="row">
-            <div class="trait"
-                 th:text="${T(com.acf.careerfinder.psychometrics.ScoringService).domainLabel(d.key)}">Domain</div>
+            <div class="trait" th:text="${@labels.domain(d.key) != null ? @labels.domain(d.key) : d.key}">Domain</div>
             <div class="meter"><div class="fill" th:style="${'width:' + d.value + '%'}"></div></div>
             <div class="valbar" th:text="${#numbers.formatDecimal(d.value, 1, 1)}">0.0</div>
           </div>
@@ -201,20 +263,22 @@
       </div>
     </details>
 
-    <details>
-      <summary>Your answers</summary>
+    <details open>
+      <summary th:text="${t_answers}">Your answers</summary>
       <div class="content">
         <table>
           <tbody>
+          <!-- Prefer AI-prepared localized rows -->
           <tr th:if="${rec.answersEcho != null && !#lists.isEmpty(rec.answersEcho)}"
               th:each="row : ${rec.answersEcho}">
             <th th:text="${row.label}">Question</th>
             <td th:text="${row.value}">Answer</td>
           </tr>
 
+          <!-- Fallback to legacy echo -->
           <tr th:if="${(rec.answersEcho == null || #lists.isEmpty(rec.answersEcho))
                        and (rec.echoAnswers == null || #lists.isEmpty(rec.echoAnswers))}">
-            <td colspan="2" class="muted">No answers found.</td>
+            <td colspan="2" class="muted" th:text="${t_noans}">No answers found.</td>
           </tr>
           <tr th:if="${rec.answersEcho == null || #lists.isEmpty(rec.answersEcho)}"
               th:each="e : ${rec.echoAnswers}">
@@ -223,36 +287,72 @@
           </tr>
           </tbody>
         </table>
+
+        <!-- Edit answers: go straight to server-computed last page -->
+        <div style="margin-top:14px">
+          <a class="btn" th:href="@{/questionnaire/last}" th:text="${t_edit}">Edit your answers</a>
+        </div>
       </div>
     </details>
   </aside>
 </main>
 
-<!-- Minimal inline JS: loads advice once per card -->
+<!-- Hide loader as soon as DOM is ready -->
 <script>
   (function(){
-    function $(sel, root){ return (root||document).querySelector(sel); }
+    function hideLoader(){
+      document.body.classList.remove('loading');
+      var el = document.getElementById('pageLoader');
+      if (el) el.remove();
+    }
+    if (document.readyState === 'interactive' || document.readyState === 'complete'){
+      hideLoader();
+    } else {
+      document.addEventListener('DOMContentLoaded', hideLoader, {once:true});
+    }
+  })();
+</script>
+
+<!-- Hidden i18n labels for JS (advice block localization) -->
+<div id="i18n" style="display:none"
+     th:with="L=${session.uiLang != null ? session.uiLang : 'en'}"
+     th:attr="
+        data-focus=${L=='hi'?'फ़ोकस':(L=='mr'?'फोकस':'focus')},
+        data-whyfits=${L=='hi'?'क्यों उपयुक्त:':(L=='mr'?'का जुळते:':'Why this fits:')},
+        data-entryroles=${L=='hi'?'नज़दीकी एंट्री भूमिकाएँ:':(L=='mr'?'जवळील एंट्री भूमिका:':'Entry roles nearby:')},
+        data-starting=${L=='hi'?'प्रारंभिक वेतन (महाराष्ट्र):':(L=='mr'?'प्रारंभिक पगार (महाराष्ट्र):':'Starting salary (MH):')},
+        data-where=${L=='hi'?'कहाँ आवेदन करें:':(L=='mr'?'कोठे अर्ज करायचा:':'Where to apply:')},
+        data-ifsparse=${L=='hi'?'स्थानीय अवसर कम हों तो:':(L=='mr'?'स्थानिक संधी कमी असतील तर:':'If few roles locally:')},
+        data-keep=${L=='hi'?'ध्यान रखें:':(L=='mr'?'लक्षात ठेवा:':'Keep in mind:')},
+        data-week=${L=='hi'?'इस सप्ताह:':(L=='mr'?'या आठवड्यात:':'This week:')},
+        data-loading=${L=='hi'?'लोड हो रहा है…':(L=='mr'?'लोड होत आहे…':'Loading…')},
+        data-error=${L=='hi'?'जानकारी लोड नहीं हुई। कृपया फिर प्रयास करें।':(L=='mr'?'माहिती लोड झाली नाही. कृपया पुन्हा प्रयत्न करा.':'Couldn’t load advice. Please try again.')}
+     ">
+</div>
+
+<!-- Load sector advice on demand; also load immediately for any open details -->
+<script>
+  (function(){
     function $all(sel, root){ return Array.from((root||document).querySelectorAll(sel)); }
+    const I = (document.getElementById('i18n') || {}).dataset || {};
 
     function renderAdvice(container, data){
       const esc = s => (s ?? '').toString();
       const has = a => Array.isArray(a) && a.length > 0;
-
       const blocks = [];
 
-      // Title line
       blocks.push(
         `<div class="small muted" style="margin-bottom:8px">
            <b>${esc(data.sectorName || '')}</b> – ${esc(data.userDistrict || '')}
-           ${has(data.cityFocus) ? ` (focus: ${data.cityFocus.map(esc).join(', ')})` : ''}
+           ${has(data.cityFocus) ? ` (${esc(I.focus||'focus')}: ${data.cityFocus.map(esc).join(', ')})` : ''}
          </div>`);
 
       if (has(data.whyFit)) {
-        blocks.push(`<div><b>Why this fits:</b><ul style="margin:6px 0 0 18px">${data.whyFit.map(i=>`<li>${esc(i)}</li>`).join('')}</ul></div>`);
+        blocks.push(`<div><b>${esc(I.whyfits||'Why this fits:')}</b><ul style="margin:6px 0 0 18px">${data.whyFit.map(i=>`<li>${esc(i)}</li>`).join('')}</ul></div>`);
       }
 
       if (has(data.entryRoles)) {
-        blocks.push(`<div style="margin-top:8px"><b>Entry roles nearby:</b><ul style="margin:6px 0 0 18px">${
+        blocks.push(`<div style="margin-top:8px"><b>${esc(I.entryroles||'Entry roles nearby:')}</b><ul style="margin:6px 0 0 18px">${
           data.entryRoles.map(r=>`<li><b>${esc(r.title||'')}</b>${r.notes?` – ${esc(r.notes)}`:''}</li>`).join('')
         }</ul></div>`);
       }
@@ -260,31 +360,31 @@
       if (data.startingSalaryINR && (data.startingSalaryINR.district || (data.startingSalaryINR.nearby && data.startingSalaryINR.nearby.length))) {
         const s = data.startingSalaryINR;
         const nearby = Array.isArray(s.nearby) ? s.nearby.map(n=>`${esc(n.city)}: ${esc(n.range)}`).join('; ') : '';
-        blocks.push(`<div style="margin-top:8px"><b>Starting salary (MH):</b> ${
+        blocks.push(`<div style="margin-top:8px"><b>${esc(I.starting||'Starting salary (MH):')}</b> ${
           esc(s.district||'')
         }${nearby?` &nbsp;|&nbsp; ${nearby}`:''}${s.note?` &nbsp;<span class="small muted">(${esc(s.note)})</span>`:''}</div>`);
       }
 
       if (has(data.whereToApply)) {
-        blocks.push(`<div style="margin-top:8px"><b>Where to apply:</b><ul style="margin:6px 0 0 18px">${
+        blocks.push(`<div style="margin-top:8px"><b>${esc(I.where||'Where to apply:')}</b><ul style="margin:6px 0 0 18px">${
           data.whereToApply.map(l=>`<li><a class="link" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)}</a></li>`).join('')
         }</ul></div>`);
       }
 
       if (data.nearbyIfSparse && (data.nearbyIfSparse.explanation || has(data.nearbyIfSparse.suggestedCities))) {
-        blocks.push(`<div style="margin-top:8px"><b>If few roles locally:</b> ${
+        blocks.push(`<div style="margin-top:8px"><b>${esc(I.ifsparse||'If few roles locally:')}</b> ${
           esc(data.nearbyIfSparse.explanation || '')
-        } ${has(data.nearbyIfSparse.suggestedCities)?' — ' + data.nearbyIfSparse.suggestedCities.map(esc).join(', '):''}</div>`);
+        }${has(data.nearbyIfSparse.suggestedCities)?' — ' + data.nearbyIfSparse.suggestedCities.map(esc).join(', '):''}</div>`);
       }
 
       if (has(data.gatingReminders)) {
-        blocks.push(`<div style="margin-top:8px"><b>Keep in mind:</b><ul style="margin:6px 0 0 18px">${
+        blocks.push(`<div style="margin-top:8px"><b>${esc(I.keep||'Keep in mind:')}</b><ul style="margin:6px 0 0 18px">${
           data.gatingReminders.map(i=>`<li>${esc(i)}</li>`).join('')
         }</ul></div>`);
       }
 
       if (has(data.checklistWeek1)) {
-        blocks.push(`<div style="margin-top:8px"><b>This week:</b><ul style="margin:6px 0 0 18px">${
+        blocks.push(`<div style="margin-top:8px"><b>${esc(I.week||'This week:')}</b><ul style="margin:6px 0 0 18px">${
           data.checklistWeek1.map(i=>`<li>${esc(i)}</li>`).join('')
         }</ul></div>`);
       }
@@ -305,22 +405,25 @@
       const detail = detailsEl.getAttribute('data-detail') || 'full';
       if (!sectorId) return;
 
-      container.innerHTML = `<div class="small muted">Loading…</div>`;
+      container.innerHTML = `<div class="small muted">${(I.loading||'Loading…')}</div>`;
       fetch(`/api/sector-advice?sectorId=${encodeURIComponent(sectorId)}&detail=${encodeURIComponent(detail)}`, {
         headers: { "Accept":"application/json" }
       })
         .then(r => r.ok ? r.json() : Promise.reject(r.status))
         .then(json => renderAdvice(container, json))
         .catch(() => {
-          container.innerHTML = `<div class="small muted">Couldn’t load advice. Please try again.</div>`;
+          container.innerHTML = `<div class="small muted">${(I.error||"Couldn’t load advice. Please try again.")}</div>`;
         });
     }
 
-    // Attach to all job <details>
+    // Load advice when cards are opened…
     $all('details.job').forEach(d => {
-      d.addEventListener('toggle', () => {
-        if (d.open) loadAdviceOnce(d);
-      }, { passive:true });
+      d.addEventListener('toggle', () => { if (d.open) loadAdviceOnce(d); }, { passive:true });
+    });
+
+    // …and also immediately for any cards that start open (first one).
+    document.addEventListener('DOMContentLoaded', () => {
+      $all('details.job[open]').forEach(loadAdviceOnce);
     });
   })();
 </script>

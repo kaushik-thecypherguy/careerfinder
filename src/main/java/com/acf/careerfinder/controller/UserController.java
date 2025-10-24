@@ -1,14 +1,12 @@
 package com.acf.careerfinder.controller;
 
-import com.acf.careerfinder.model.QuestionnaireForm;
-import com.acf.careerfinder.model.Recommendation;
 import com.acf.careerfinder.model.UserData;
-import com.acf.careerfinder.service.QuestionnaireService;
-import com.acf.careerfinder.service.RecommendationService;
-import com.acf.careerfinder.service.UserService;
 import com.acf.careerfinder.service.PasswordValidator;
+import com.acf.careerfinder.service.UserService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -21,13 +19,10 @@ import java.util.Optional;
 public class UserController {
 
     @Autowired private UserService service;
-    @Autowired private QuestionnaireService questionnaireService;
-    @Autowired private RecommendationService recommendationService;
     @Autowired private PasswordValidator passwordValidator;
 
-    // --------- Pages ----------
     @GetMapping("/")
-    public String home() { return "redirect:/questionnaire"; }
+    public String home() { return "redirect:/resume"; }
 
     @GetMapping("/add-user")
     public String showAddUserForm(Model model) {
@@ -38,23 +33,18 @@ public class UserController {
     @GetMapping("/login")
     public String loginPage() { return "login"; }
 
-    // --------- Actions (POST) ----------
     @PostMapping("/CreateUser")
     public String createUser(@ModelAttribute("user") UserData u,
                              HttpSession session,
                              RedirectAttributes ra) {
         try {
-            // Enforce server-side password policy
             passwordValidator.validateOrThrow(u.getUserpassword());
-
             service.createUser(u);
 
-            // Auto-login the user and send to language select
+            // Auto-login; language will be chosen on /start via /resume
             session.setAttribute("USER_EMAIL", u.getEmail());
-            ra.addAttribute("registered", "");
-            return "redirect:/language";
+            return "redirect:/resume";
         } catch (IllegalArgumentException weakPw) {
-            // Weak password → return to signup with banner and preserve fields
             ra.addAttribute("weakpw", "");
             ra.addAttribute("email", u.getEmail());
             ra.addAttribute("username", u.getUsername());
@@ -66,48 +56,83 @@ public class UserController {
         }
     }
 
-    // REPLACEMENT (does NOT collide)
     @GetMapping("/account")
-    public String accountHome() {
-        return "redirect:/questionnaire";
-    }
+    public String accountHome() { return "redirect:/resume"; }
 
     @PostMapping("/CheckLogin")
-    public String login(@RequestParam String email,
+    public String login(@RequestParam(value = "email", required = false) String emailParam,
+                        @RequestParam(value = "identifier", required = false) String identifier,
                         @RequestParam String password,
                         HttpSession session,
                         RedirectAttributes ra) {
-        Optional<UserData> maybeUser = service.findByEmail(email);
+
+        String loginKey = (emailParam != null && !emailParam.isBlank()) ? emailParam : identifier;
+
+        Optional<UserData> maybeUser = (loginKey != null && loginKey.contains("@"))
+                ? service.findByEmail(loginKey)
+                : service.findByUsername(loginKey);
+
         if (maybeUser.isEmpty()) {
             ra.addAttribute("error", "unknown");
-            ra.addAttribute("email", email);
+            ra.addAttribute("email", loginKey);
             return "redirect:/login";
         }
         UserData user = maybeUser.get();
         if (!user.isEnabled()) {
             ra.addAttribute("error", "disabled");
-            ra.addAttribute("email", email);
+            ra.addAttribute("email", loginKey);
             return "redirect:/login";
         }
         if (user.getUserpassword() == null || !user.getUserpassword().equals(password)) {
             ra.addAttribute("error", "badpw");
-            ra.addAttribute("email", email);
+            ra.addAttribute("email", loginKey);
             return "redirect:/login";
         }
-        session.setAttribute("USER_EMAIL", email);
-        return "redirect:/language";  // go through language → video → questionnaire
+
+        session.setAttribute("USER_EMAIL", user.getEmail());
+        return "redirect:/resume";
     }
 
-    // --------- GET fallbacks to avoid 405s ----------
     @GetMapping("/CreateUser")
     public String createUserGetFallback() { return "redirect:/add-user"; }
 
     @GetMapping("/CheckLogin")
     public String checkLoginGetFallback() { return "redirect:/login"; }
 
-    // --------- Logout (allow both) ----------
     @PostMapping("/logout")
     public String doLogoutPost(HttpSession session, RedirectAttributes ra) {
         session.invalidate(); ra.addAttribute("logout", ""); return "redirect:/login";
+    }
+
+    /* ------------ one-time "note your login ID" helpers ------------ */
+
+    @GetMapping("/account/login-info")
+    @ResponseBody
+    public ResponseEntity<?> loginInfo(HttpSession session) {
+        String email = (String) session.getAttribute("USER_EMAIL");
+        if (email == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Not logged in"));
+        }
+        UserData user = service.findByEmail(email).orElse(null);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Session stale"));
+        }
+        boolean show = (user.getLoginIdShownAt() == null);
+        return ResponseEntity.ok(Map.of(
+                "show", show,
+                "loginId", email,
+                "password", show ? user.getUserpassword() : null
+        ));
+    }
+
+    @PostMapping("/account/login-info/ack")
+    @ResponseBody
+    public ResponseEntity<?> markLoginIdShown(HttpSession session) {
+        String email = (String) session.getAttribute("USER_EMAIL");
+        if (email == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Not logged in"));
+        }
+        service.markLoginIdShown(email);
+        return ResponseEntity.ok(Map.of("ok", true));
     }
 }

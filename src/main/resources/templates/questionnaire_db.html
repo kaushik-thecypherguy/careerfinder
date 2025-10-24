@@ -1,53 +1,331 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      th:attr="lang=${session.uiLang != null ? session.uiLang : 'en'}">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Questionnaire</title>
+
+  <!-- user scope for localStorage -->
+  <meta name="acf:user" th:content="${session.USER_EMAIL != null ? session.USER_EMAIL : 'guest'}"/>
+
+  <!-- CSRF for autosave -->
+  <meta name="_csrf" th:content="${_csrf?.token}">
+  <meta name="_csrf_header" th:content="${_csrf?.headerName}">
+
   <style>
-    :root{--bg:#f8fafc;--card:#fff;--text:#0f172a;--muted:#64748b;--border:#e2e8f0;--accent:#2563eb;--accent-700:#1d4ed8}
+    :root{
+      --bg:#f8fafc; --card:#fff; --text:#0f172a; --muted:#64748b; --border:#e2e8f0;
+      --accent:#2563eb; --accent-700:#1d4ed8; --danger:#b91c1c; --soft:#f8fafc;
+    }
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,-apple-system,Segoe UI,Roboto,Arial}
     .wrap{max-width:960px;margin:28px auto;padding:0 16px}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:0 1px 8px rgba(0,0,0,.04)}
     h1{margin:0 0 12px}
     .row{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-    .q{padding:12px 0;border-bottom:1px solid var(--border)} .q:last-child{border-bottom:0}
-    .q h3{margin:0 0 8px;font-size:1.05rem}
-    .opt{display:flex;align-items:center;gap:10px;margin:6px 0}
+    .muted{color:var(--muted)}
+
+    .q-list{counter-reset: qn}
+    .q{margin:14px 0;padding:16px;border:1px solid var(--border);border-radius:14px;background:#fff}
+    .q h3{margin:0 0 10px;font-size:1.06rem;line-height:1.35}
+    .q .q-title::before{counter-increment: qn; content: counter(qn) ". "; font-weight:800; margin-right:4px; color:#111827;}
+    .opt{display:flex;align-items:center;gap:10px;margin:8px 0}
     .opt input{accent-color:var(--accent)}
     textarea{width:100%;min-height:96px;border:1px solid var(--border);border-radius:12px;padding:10px}
-    .actions{display:flex;gap:12px;margin-top:18px;align-items:center;flex-wrap:wrap}
-    .btn{padding:10px 16px;border-radius:12px;border:1px solid var(--accent);background:var(--accent);color:#fff;font-weight:800;cursor:pointer;text-decoration:none}
+    .inline{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+
+    .actions{display:flex;gap:12px;margin-top:20px;align-items:center;flex-wrap:wrap}
+    .btn{padding:10px 16px;border-radius:12px;border:1px solid var(--accent);background:var(--accent);color:#fff;font-weight:800;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
+    .btn:focus{outline:3px solid rgba(37,99,235,.35);outline-offset:2px}
     .btn:hover{background:var(--accent-700)}
-    .muted{color:var(--muted)}
+
+    .q.error{border-color:#fecaca;background:#fff7f7}
+    .err{display:none;color:#b91c1c;font-size:.92rem;margin-top:6px}
+    .q.error .err{display:block}
+
+    /* Blocking splash shown after final Submit */
+    #loadingOverlay{
+      position:fixed; inset:0; z-index:9999; display:none; place-items:center;
+      background:#f6f7fb; color:#0f172a; font-weight:800; letter-spacing:.3px;
+      font-family:Inter,system-ui,Segoe UI,Roboto,Arial; font-size:clamp(26px,5vw,48px)
+    }
+    #loadingOverlay.show{display:grid;}
   </style>
 
   <script>
-    // Pack MULTI selections into hidden inputs so the server receives "a,b,c".
-    // Also clear the hidden value if nothing is selected.
-    function packCheckboxes(){
+    // ---------- user-scoped storage key ----------
+    const CURRENT_USER = (document.querySelector('meta[name="acf:user"]')?.content || 'guest').trim().toLowerCase();
+    const STORE_KEY = 'acf_questionnaire_answers__' + (CURRENT_USER || 'guest');
+
+    // One-time migration from old key
+    (function migrateOldKey(){
+      const OLD_KEY = 'acf_questionnaire_answers';
+      try{
+        if(localStorage.getItem(OLD_KEY) && !localStorage.getItem(STORE_KEY)){
+          localStorage.setItem(STORE_KEY, localStorage.getItem(OLD_KEY));
+        }
+        localStorage.removeItem(OLD_KEY);
+      }catch(e){}
+    })();
+
+    // ---------- utilities ----------
+    function loadAnswers(){
+      try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); } catch(e){ return {}; }
+    }
+    function saveAnswers(map){ try { localStorage.setItem(STORE_KEY, JSON.stringify(map||{})); } catch(e){} }
+
+    const $  = (sel,root)=> (root||document).querySelector(sel);
+    const $$ = (sel,root)=> Array.from((root||document).querySelectorAll(sel));
+    const keyFromInputName = (name)=>{
+      const m = name && name.match(/^answers\[(.+?)\]$/);
+      return m ? m[1] : null;
+    };
+
+    // ---------- multi checkbox packing ----------
+    function packCheckboxesIntoHidden(){
       const byKey = {};
-      document.querySelectorAll('input[name="__multi__"]').forEach(cb=>{
+      $$('input[name="__multi__"]').forEach(cb=>{
         const key = cb.getAttribute('data-key');
         (byKey[key] ||= []);
-        if (cb.checked) byKey[key].push(cb.value);
+        if(cb.checked) byKey[key].push(cb.value);
+      });
+      $$('input[type="hidden"][id^="hidden-"]').forEach(h=>{
+        const key = h.id.substring('hidden-'.length);
+        h.value = (byKey[key] || []).join(',');
+      });
+      return byKey;
+    }
+
+    // ---------- validation ----------
+    function mark(qEl, bad, msg){
+      qEl.classList.toggle('error', bad);
+      let err = qEl.querySelector('.err');
+      if(!err){ err = document.createElement('div'); err.className='err'; err.setAttribute('aria-live','polite'); qEl.appendChild(err); }
+      err.textContent = bad ? msg : '';
+    }
+
+    function validatePage(){
+      const lang = (document.documentElement.lang || 'en').toLowerCase();
+      const MSG = {
+        en: { pick:'Please pick an option here.' },
+        hi: { pick:'कृपया यहाँ एक विकल्प चुनें।' },
+        mr: { pick:'कृपया येथे एक पर्याय निवडा.' }
+      }[lang] || { pick:'Please pick an option here.' };
+
+      let firstBad = null;
+      $$('.q[data-key]').forEach(q=>{
+        const key = q.getAttribute('data-key');
+        const typ = (q.getAttribute('data-type') || '').toLowerCase();
+        let ok = false;
+
+        if(typ === 'single'){
+          ok = !!$(`input[type="radio"][name="answers[${key}]"]:checked`);
+        }else if(typ === 'multi'){
+          ok = $$(`input[type="checkbox"][name="__multi__"][data-key="${key}"]:checked`).length > 0;
+        }
+        mark(q, !ok, MSG.pick);
+        if(!ok && !firstBad) firstBad = q;
       });
 
-      // Update *all* hidden inputs for MULTI, even if no boxes are checked
-      const prefix = 'hidden-';
-      document.querySelectorAll(`input[type="hidden"][id^="${prefix}"]`).forEach(h=>{
-        const key = h.id.substring(prefix.length);
-        const arr = byKey[key] || [];
-        h.value = arr.join(',');
-      });
-
+      if(firstBad){
+        firstBad.scrollIntoView({behavior:'smooth', block:'center'});
+        const f = $('input,select,textarea', firstBad);
+        if(f) try{ f.focus({preventScroll:true}); }catch(e){}
+        return false;
+      }
       return true;
     }
+
+    // ---------- hydrate from store ----------
+    function hydrateFromStore(){
+      const map = loadAnswers();
+
+      $$('input[type="radio"][name^="answers["]').forEach(r=>{
+        const key = keyFromInputName(r.name);
+        if(key && map[key] != null){
+          r.checked = (r.value === String(map[key]));
+        }
+      });
+
+      const keysSet = new Set(Object.keys(map));
+      keysSet.forEach(k=>{
+        const val = String(map[k] || '');
+        const parts = val ? val.split(',') : [];
+        $$(`input[type="checkbox"][name="__multi__"][data-key="${k}"]`).forEach(cb=>{
+          cb.checked = parts.includes(cb.value);
+        });
+        const hidden = document.getElementById('hidden-'+k);
+        if(hidden) hidden.value = val;
+      });
+    }
+
+    // ---------- ensure full payload on final submit ----------
+    function appendMissingAnswersToForm(form){
+      const existing = new Set($$('[name^="answers["]', form).map(i=> keyFromInputName(i.name)));
+      const all = loadAnswers();
+      Object.entries(all).forEach(([k,v])=>{
+        if(!existing.has(k)){
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = `answers[${k}]`;
+          input.value = v;
+          form.appendChild(input);
+        }
+      });
+    }
+
+    // ---------- SERVER AUTOSAVE (progress → DB) ----------
+    (function setupAutosave(){
+      const form = document.getElementById('qnForm');
+      if(!form) return;
+
+      const section = form.dataset.section || 'QUESTIONNAIRE';
+      let page = parseInt(form.dataset.page || '1', 10);
+      const pageSize = parseInt(form.dataset.pageSize || '12', 10);
+      const csrf = document.querySelector('meta[name="_csrf"]')?.content;
+      const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
+
+      // Persist last page/pageSize for convenience (optional)
+      try{
+        const LAST_KEY = 'acf_qn_last_page__' + (CURRENT_USER || 'guest');
+        const SIZE_KEY = 'acf_qn_page_size__' + (CURRENT_USER || 'guest');
+        localStorage.setItem(LAST_KEY, String(page));
+        localStorage.setItem(SIZE_KEY, String(pageSize));
+      }catch(e){}
+
+      let pending = {};
+      let timer = null;
+
+      function queue(key, value){
+        if(!key) return;
+        pending[key] = value;
+        if(timer) clearTimeout(timer);
+        timer = setTimeout(() => flush(false), 350);
+      }
+
+      async function flush(keepalive){
+        const delta = pending;
+        pending = {};
+        if(!Object.keys(delta).length) return;
+
+        const headers = {'Content-Type':'application/json'};
+        if (csrf && csrfHeader) headers[csrfHeader] = csrf;
+
+        try {
+          await fetch('/api/progress', {
+            method: 'POST',
+            headers,
+            keepalive: !!keepalive,
+            body: JSON.stringify({ section, page, answers: delta })
+          });
+        } catch (e) { /* ignore; next change will retry */ }
+      }
+
+      // expose for navigation handlers
+      window.__acfProgressFlush = (keepalive)=> flush(!!keepalive);
+
+      function onChange(e){
+        const t = e.target;
+        if(!t) return;
+
+        if(t.type === 'radio' && t.name && t.name.startsWith('answers[')){
+          const key = keyFromInputName(t.name);
+          if(!key || !t.checked) return;
+          const v = t.value;
+          const map = loadAnswers(); map[key] = v; saveAnswers(map);
+          queue(key, v);
+          const q = document.querySelector(`.q[data-key="${key}"]`);
+          if(q) mark(q, false, '');
+        }else if(t.type === 'checkbox' && t.name === '__multi__'){
+          packCheckboxesIntoHidden();
+          const key = t.getAttribute('data-key');
+          const hidden = document.getElementById('hidden-'+key);
+          const value = hidden ? hidden.value : '';
+          const map = loadAnswers(); map[key] = value; saveAnswers(map);
+          queue(key, value);
+          const q = document.querySelector(`.q[data-key="${key}"]`);
+          if(q) mark(q, false, '');
+        }
+      }
+
+      form.addEventListener('change', onChange, {passive:true});
+      form.addEventListener('input',  onChange, {passive:true});
+
+      window.addEventListener('beforeunload', () => {
+        if(timer){ clearTimeout(timer); flush(true); }
+      });
+    })();
+
+    // ---------- page wiring ----------
+    document.addEventListener('DOMContentLoaded', function(){
+      hydrateFromStore();
+
+      // NEXT (validate + save + flush before navigate)
+      const nextLink = document.getElementById('nextLink');
+      if(nextLink){
+        nextLink.addEventListener('click', async function(ev){
+          ev.preventDefault();
+          if(!validatePage()) return;
+
+          const packed = packCheckboxesIntoHidden();
+          const map = loadAnswers();
+          $$('input[type="radio"][name^="answers["]').forEach(r=>{
+            if(r.checked){ const k = keyFromInputName(r.name); if(k) map[k] = r.value; }
+          });
+          Object.entries(packed).forEach(([k, arr]) => { map[k] = (arr||[]).join(','); });
+          saveAnswers(map);
+
+          if (window.__acfProgressFlush) await window.__acfProgressFlush(true);
+          window.location.href = nextLink.getAttribute('href');
+        });
+      }
+
+      // PREVIOUS / Back to gating: just save + flush before navigate
+      ['toGatingLink','prevPageLink'].forEach(id=>{
+        const link = document.getElementById(id);
+        if(link){
+          link.addEventListener('click', async function(ev){
+            ev.preventDefault();
+            packCheckboxesIntoHidden();
+            const map = loadAnswers();
+            $$('input[type="radio"][name^="answers["]').forEach(r=>{
+              if(r.checked){ const k = keyFromInputName(r.name); if(k) map[k] = r.value; }
+            });
+            saveAnswers(map);
+            if (window.__acfProgressFlush) await window.__acfProgressFlush(true);
+            window.location.href = link.getAttribute('href');
+          });
+        }
+      });
+
+      // Final submit: validate, carry all answers, (optional) flush + show blocking splash
+      const form = document.getElementById('qnForm');
+      if(form){
+        form.addEventListener('submit', async function(ev){
+          if(!validatePage()){ ev.preventDefault(); ev.stopPropagation(); return; }
+
+          // Show blocking splash (auto‑localized)
+          var L=(document.documentElement.lang||'en').toLowerCase();
+          var msg = L.startsWith('hi') ? 'आपके परिणाम लोड हो रहे हैं…'
+                  : L.startsWith('mr') ? 'तुमचे निकाल लोड होत आहेत…'
+                  : 'Your results are loading…';
+          var el=document.getElementById('loadingOverlay');
+          if(el){ el.textContent = msg; el.classList.add('show'); }
+
+          packCheckboxesIntoHidden();
+          appendMissingAnswersToForm(form);
+          if (window.__acfProgressFlush) await window.__acfProgressFlush(false);
+          // submit proceeds
+        });
+      }
+    });
   </script>
 </head>
 
 <body>
+<div id="loadingOverlay" aria-live="polite"></div>
+
 <main class="wrap">
   <section class="card">
     <div class="row">
@@ -55,26 +333,30 @@
       <span class="muted">Language: <b th:text="${session.uiLang != null ? session.uiLang : 'en'}">en</b> (fixed)</span>
     </div>
 
-    <form th:action="@{/questionnaire/submit}" th:object="${form}" method="post" onsubmit="return packCheckboxes()">
+    <!-- Add data-section + data-page so autosave knows what to store -->
+    <form id="qnForm"
+          th:action="@{/questionnaire/submit}"
+          th:object="${form}"
+          method="post"
+          data-section="QUESTIONNAIRE"
+          th:attr="data-page=${page.page}, data-page-size=${page.pageSize}">
       <input type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}" />
 
-      <!-- Support both shapes: page.questions (current) or page.items (fallback) -->
-      <div th:with="items=${page.questions != null ? page.questions : page.items}">
-
-        <!-- Iterate and STRICTLY render only ipip.* or sjt.* questions -->
+      <div th:with="items=${page.questions != null ? page.questions : page.items}" class="q-list">
         <div th:each="q : ${items}" th:with="k=${q.key != null ? q.key : (q.qkey != null ? q.qkey : '')}">
           <div class="q"
                th:if="${k != null and (#strings.startsWith(k,'ipip.') or #strings.startsWith(k,'sjt.'))}"
                th:with="
+                 typeLc=${q.type != null && !#strings.isEmpty(q.type) ? #strings.toLowerCase(q.type) : ''},
+                 t=${typeLc != '' ? typeLc : ((q.options == null or #lists.isEmpty(q.options)) ? 'single' : 'single')},
                  text=${q.text != null && !#strings.isEmpty(q.text) ? q.text
-                        : (q.label != null ? q.label : (q.key != null ? q.key : q.qkey))},
-                 t=${q.type != null && !#strings.isEmpty(q.type) ? q.type
-                        : ((q.options == null or #lists.isEmpty(q.options)) ? 'text' : 'single')}
-               ">
+                        : (q.label != null ? q.label : (q.key != null ? q.key : q.qkey))}
+               "
+               th:attr="data-key=${k}, data-type=${t}">
 
             <!-- SINGLE -->
             <div th:if="${t == 'single'}">
-              <h3 th:text="${text}">Question text</h3>
+              <h3 class="q-title" th:text="${text}">Question text</h3>
               <div th:each="o : ${q.options}" class="opt">
                 <input type="radio"
                        th:id="${k + '-' + o.value}"
@@ -83,13 +365,17 @@
                        th:checked="${form != null && form.answers != null && form.answers[k] == o.value}" />
                 <label th:for="${k + '-' + o.value}" th:text="${o.label}">Label</label>
               </div>
+              <div class="err" aria-live="polite"></div>
             </div>
 
             <!-- MULTI -->
-            <div th:if="${t == 'multi'}">
-              <h3 th:text="${text}">Question text</h3>
+            <div th:if="${t == 'multi'}" th:attr="data-type='multi'">
+              <h3 class="q-title" th:text="${text}">Question text</h3>
+
+              <!-- hidden holds comma-separated list -->
               <input type="hidden" th:id="${'hidden-' + k}" th:name="${'answers[' + k + ']'}"
                      th:value="${form != null && form.answers != null ? form.answers[k] : ''}" />
+
               <div th:each="o : ${q.options}" class="opt">
                 <input type="checkbox"
                        name="__multi__"
@@ -99,20 +385,27 @@
                        th:checked="${form != null && form.answers != null && (',' + form.answers[k] + ',').contains(',' + o.value + ',')}" />
                 <label th:for="${k + '-' + o.value}" th:text="${o.label}">Label</label>
               </div>
+              <div class="err" aria-live="polite"></div>
             </div>
 
-            <!-- STRICT: no TEXT questions are rendered -->
           </div>
         </div>
 
         <div class="actions">
-          <a class="btn"
+          <a id="toGatingLink" class="btn"
+             th:href="@{/gating}"
+             th:if="${page.page == 1}"
+             th:text="${session.uiLang == 'hi' ? 'गेटिंग पर वापस' : (session.uiLang == 'mr' ? 'गेटिंगकडे परत' : 'Back to Gating')}">
+            Back to Gating
+          </a>
+
+          <a id="prevPageLink" class="btn"
              th:href="@{/questionnaire(page=${page.page-1}, pageSize=${page.pageSize})}"
              th:if="${page.page > 1}">Previous</a>
 
           <button class="btn" type="submit" th:if="${page.page == page.totalPages}">Submit</button>
 
-          <a class="btn"
+          <a id="nextLink" class="btn"
              th:href="@{/questionnaire(page=${page.page+1}, pageSize=${page.pageSize})}"
              th:if="${page.page < page.totalPages}">Next</a>
 
@@ -122,5 +415,11 @@
     </form>
   </section>
 </main>
+
+<noscript>
+  <div style="max-width:960px;margin:16px auto;padding:12px;color:#991b1b">
+    JavaScript is disabled. Your answers will still submit, but autosave and on‑page validation are off.
+  </div>
+</noscript>
 </body>
 </html>
