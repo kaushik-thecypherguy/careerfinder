@@ -7,8 +7,7 @@
     <style>
         :root{
           --bg:#f6f7fb; --card:#ffffff; --text:#0f172a; --muted:#6b7280; --border:#e5e7eb;
-          --brand:#dc2626; --brand-700:#b91c1c; --ring:#fecaca;
-          --maxw:1080px;
+          --brand:#dc2626; --brand-700:#b91c1c; --ring:#fecaca; --maxw:1080px;
         }
         *{box-sizing:border-box}
         body{margin:0;background:var(--bg);color:var(--text);font-family:ui-sans-serif,-apple-system,Segoe UI,Roboto,Inter,Arial;line-height:1.6}
@@ -33,10 +32,10 @@
         label{display:block;margin:14px 0 6px;font-weight:600}
         input{width:100%;height:48px;border:1px solid var(--border);border-radius:14px;padding:0 14px;background:#fff;font-size:1rem}
         input:focus{border-color:var(--brand);box-shadow:0 0 0 4px var(--ring);outline:0}
+        .meta{margin-top:8px;font-size:.95rem;color:var(--muted)}
         .row{margin-top:16px}
         .btn{width:100%;height:50px;border-radius:14px;border:1px solid var(--brand);background:var(--brand);color:#fff;font-weight:800;cursor:pointer}
         .btn:hover{background:var(--brand-700);border-color:var(--brand-700)}
-        .meta{margin-top:14px;font-size:.97rem;color:var(--muted)}
         .err{margin:12px 0;padding:12px;border-radius:12px;background:#fef2f2;color:#991b1b;border:1px solid var(--ring)}
 
         .pw-row{display:flex;gap:10px;align-items:center}
@@ -46,10 +45,19 @@
         .pw-toggle:hover{background:#f8fafc}
     </style>
     <script>
-        // Optional: show/hide password toggle (kept minimal)
+        // Optional: show/hide password
         function togglePw() {
           const i = document.getElementById('password');
           i.type = (i.type === 'password') ? 'text' : 'password';
+        }
+        // Optional helper: if username empty, suggest from email left-part
+        function suggestUsername(){
+          const u = document.getElementById('username');
+          const e = document.getElementById('email');
+          if (!u || !e) return;
+          if (u.value.trim() === '' && e.value.includes('@')) {
+            u.value = e.value.split('@')[0].replace(/[^A-Za-z0-9._-]/g,'').slice(0,30);
+          }
         }
     </script>
 </head>
@@ -84,9 +92,32 @@
             <form th:action="@{/CreateUser}" th:object="${user}" method="post" novalidate>
                 <input type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}" />
 
+                <!-- NEW: Username (required) -->
+                <label for="username">Username</label>
+                <input id="username"
+                       th:field="*{username}"
+                       type="text"
+                       placeholder="yourname"
+                       required
+                       minlength="3"
+                       maxlength="30"
+                       pattern="^[A-Za-z0-9._-]{3,30}$"
+                       title="3–30 chars; letters, numbers, dot, underscore, hyphen."
+                       autocomplete="username" />
+
+                <div class="meta">3–30 characters. Letters, numbers, dot <code>.</code>, underscore <code>_</code>, or hyphen <code>-</code>.</div>
+
                 <label for="email">Email</label>
-                <input id="email" th:field="*{email}" type="email" placeholder="you@example.com"
-                       required inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" />
+                <input id="email"
+                       th:field="*{email}"
+                       type="email"
+                       placeholder="you@example.com"
+                       required
+                       inputmode="email"
+                       autocomplete="email"
+                       autocapitalize="off"
+                       spellcheck="false"
+                       onblur="suggestUsername()" />
 
                 <label for="password">Password</label>
                 <div class="pw-row">
