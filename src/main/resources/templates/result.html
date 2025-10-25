@@ -427,5 +427,14 @@
     });
   })();
 </script>
+<script>
+  (function(){
+    const user = (document.querySelector('meta[name="acf:user"]')?.content || 'guest').trim().toLowerCase();
+    const sizeKey = 'acf_qn_page_size__' + (user || 'guest');
+    const ps = localStorage.getItem(sizeKey);
+    const a  = document.querySelector('a.btn[href^="/questionnaire/last"]');
+    if (a && ps) a.href = '/questionnaire/last?pageSize=' + encodeURIComponent(ps);
+  })();
+</script>
 </body>
 </html>

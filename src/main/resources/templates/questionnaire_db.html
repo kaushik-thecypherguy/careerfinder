@@ -137,7 +137,31 @@
       return true;
     }
 
-    // ---------- hydrate from store ----------
+    // ---------- hydrate from server progress (then store) ----------
+    async function hydrateFromServerProgressAndReconcile() {
+      const local = loadAnswers(); // whatever the browser already has
+      try {
+        const res = await fetch('/api/progress', { headers: { 'Accept':'application/json' } });
+        if (!res.ok) return; // fall back to localStorage only
+        const j = await res.json();
+        const srv = (j && j.questionnaire && j.questionnaire.answers) ? j.questionnaire.answers : {};
+        const srvPage = (j && j.questionnaire && j.questionnaire.page) ? j.questionnaire.page : 1;
+
+        // Merge: keep all local keys, but server wins on conflicts.
+        const merged = Object.assign({}, local, srv);
+        saveAnswers(merged);
+
+        // If server had nothing but local had data (e.g., new device or earlier local-only),
+        // push once so other pages are preserved when we jump to the last page.
+        if (Object.keys(srv).length === 0 && Object.keys(local).length > 0 && window.__acfProgressSaveAll) {
+          try { await window.__acfProgressSaveAll(merged, srvPage); } catch(e){}
+        }
+      } catch (e) {
+        // ignore; we'll still hydrate from localStorage
+      }
+    }
+
+    // ---------- hydrate inputs from local store ----------
     function hydrateFromStore(){
       const map = loadAnswers();
 
@@ -225,6 +249,19 @@
       // expose for navigation handlers
       window.__acfProgressFlush = (keepalive)=> flush(!!keepalive);
 
+      // expose a bulk save for first-load reconcile (server empty -> push local)
+      window.__acfProgressSaveAll = async function(all, p){
+        const headers = {'Content-Type':'application/json'};
+        if (csrf && csrfHeader) headers[csrfHeader] = csrf;
+        try {
+          await fetch('/api/progress', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ section, page: (p || page), answers: (all || {}) })
+          });
+        } catch(e) { /* ignore */ }
+      };
+
       function onChange(e){
         const t = e.target;
         if(!t) return;
@@ -258,7 +295,9 @@
     })();
 
     // ---------- page wiring ----------
-    document.addEventListener('DOMContentLoaded', function(){
+    document.addEventListener('DOMContentLoaded', async function(){
+      // 1) Pull server progress, reconcile with local, then 2) hydrate inputs from store.
+      await hydrateFromServerProgressAndReconcile();
       hydrateFromStore();
 
       // NEXT (validate + save + flush before navigate)
