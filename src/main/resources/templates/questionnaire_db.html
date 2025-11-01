@@ -20,11 +20,19 @@
     }
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,-apple-system,Segoe UI,Roboto,Arial}
-    .wrap{max-width:960px;margin:28px auto;padding:0 16px}
+    .wrap{max-width:1200px;margin:28px auto;padding:0 16px}
     .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:0 1px 8px rgba(0,0,0,.04)}
     h1{margin:0 0 12px}
     .row{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
     .muted{color:var(--muted)}
+
+    /* ----- two-column layout: left sidebar + main content ----- */
+    .layout{display:grid;grid-template-columns:260px 1fr;gap:18px;margin-top:8px}
+    .sidebar{position:sticky;top:12px;align-self:start}
+    @media (max-width: 900px){
+      .layout{grid-template-columns:1fr}
+      .sidebar{position:static}
+    }
 
     .q-list{counter-reset: qn}
     .q{margin:14px 0;padding:16px;border:1px solid var(--border);border-radius:14px;background:#fff}
@@ -39,6 +47,7 @@
     .btn{padding:10px 16px;border-radius:12px;border:1px solid var(--accent);background:var(--accent);color:#fff;font-weight:800;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
     .btn:focus{outline:3px solid rgba(37,99,235,.35);outline-offset:2px}
     .btn:hover{background:var(--accent-700)}
+    .btn.secondary{background:#fff;color:var(--accent);border-color:var(--border)}
 
     .q.error{border-color:#fecaca;background:#fff7f7}
     .err{display:none;color:#b91c1c;font-size:.92rem;margin-top:6px}
@@ -51,6 +60,36 @@
       font-family:Inter,system-ui,Segoe UI,Roboto,Arial; font-size:clamp(26px,5vw,48px)
     }
     #loadingOverlay.show{display:grid;}
+
+    /* -------- Images dropdown (sidebar) + lightbox -------- */
+    .img-dd { position: relative; }
+    .img-dd summary { list-style: none; }
+    .img-dd summary::-webkit-details-marker { display:none; }
+    .img-dd summary {
+      padding:12px 14px; border-radius:12px; border:1px solid var(--border);
+      background:#fff; cursor:pointer; font-weight:800; font-size:1.15rem;
+    }
+    .img-dd[open] summary { background:#eef2ff; border-color:#c7d2fe; }
+    .img-dd .menu {
+      margin:8px 0 0; padding:8px 0; list-style:none; border:1px solid var(--border);
+      border-radius:12px; background:#fff; min-width:220px; box-shadow:0 6px 18px rgba(0,0,0,.06);
+    }
+    .img-dd .menu li { padding:6px 12px; }
+    .img-dd .menu li + li { border-top:1px solid var(--border); }
+    .img-dd .menu a { text-decoration:none; color:var(--text); display:block; font-weight:600; }
+    .img-dd .menu a:hover { text-decoration:underline; }
+
+    #imgOverlay{
+      position:fixed; inset:0; z-index:9998; display:none; place-items:center;
+      background:rgba(15,23,42,.65);
+    }
+    #imgOverlay.show{display:grid;}
+    #imgOverlay .frame{
+      background:#fff; border-radius:12px; padding:8px;
+      max-width:min(96vw, 1100px); max-height:92vh; overflow:auto;
+    }
+    #imgOverlay img{ width:100%; height:auto; display:block; }
+    #imgOverlay .bar{ display:flex; justify-content:flex-end; padding:6px 4px 2px; gap:8px }
   </style>
 
   <script>
@@ -151,8 +190,7 @@
         const merged = Object.assign({}, local, srv);
         saveAnswers(merged);
 
-        // If server had nothing but local had data (e.g., new device or earlier local-only),
-        // push once so other pages are preserved when we jump to the last page.
+        // If server had nothing but local had data, push once so other pages are preserved.
         if (Object.keys(srv).length === 0 && Object.keys(local).length > 0 && window.__acfProgressSaveAll) {
           try { await window.__acfProgressSaveAll(merged, srvPage); } catch(e){}
         }
@@ -294,9 +332,33 @@
       });
     })();
 
+    // ---------- Image lightbox ----------
+    function showImage(src, alt){
+      const overlay = document.getElementById('imgOverlay');
+      const img = document.getElementById('imgOverlayImg');
+      if(!overlay || !img) return;
+      img.src = src;
+      img.alt = alt || 'Reference image';
+      overlay.classList.add('show');
+    }
+    document.addEventListener('click', function(e){
+      const overlay = document.getElementById('imgOverlay');
+      if(!overlay) return;
+      if(e.target.id === 'imgOverlay' || e.target.classList.contains('close')){
+        overlay.classList.remove('show');
+        const img = document.getElementById('imgOverlayImg');
+        if(img) img.removeAttribute('src');
+      }
+    });
+    document.addEventListener('keydown', function(e){
+      if(e.key === 'Escape'){
+        const overlay = document.getElementById('imgOverlay');
+        if(overlay) overlay.classList.remove('show');
+      }
+    });
+
     // ---------- page wiring ----------
     document.addEventListener('DOMContentLoaded', async function(){
-      // 1) Pull server progress, reconcile with local, then 2) hydrate inputs from store.
       await hydrateFromServerProgressAndReconcile();
       hydrateFromStore();
 
@@ -343,8 +405,6 @@
       if(form){
         form.addEventListener('submit', async function(ev){
           if(!validatePage()){ ev.preventDefault(); ev.stopPropagation(); return; }
-
-          // Show blocking splash (auto‑localized)
           var L=(document.documentElement.lang||'en').toLowerCase();
           var msg = L.startsWith('hi') ? 'आपके परिणाम लोड हो रहे हैं…'
                   : L.startsWith('mr') ? 'तुमचे निकाल लोड होत आहेत…'
@@ -355,7 +415,6 @@
           packCheckboxesIntoHidden();
           appendMissingAnswersToForm(form);
           if (window.__acfProgressFlush) await window.__acfProgressFlush(false);
-          // submit proceeds
         });
       }
     });
@@ -365,98 +424,131 @@
 <body>
 <div id="loadingOverlay" aria-live="polite"></div>
 
+<!-- Lightbox overlay for images -->
+<div id="imgOverlay" aria-live="polite" aria-modal="true" role="dialog">
+  <div class="frame">
+    <img id="imgOverlayImg" alt="" />
+    <div class="bar">
+      <button type="button" class="btn secondary close">Close</button>
+    </div>
+  </div>
+</div>
+
 <main class="wrap">
   <section class="card">
+    <!-- Top row -->
     <div class="row">
       <h1>Questionnaire</h1>
       <span class="muted">Language: <b th:text="${session.uiLang != null ? session.uiLang : 'en'}">en</b> (fixed)</span>
     </div>
 
-    <!-- Add data-section + data-page so autosave knows what to store -->
-    <form id="qnForm"
-          th:action="@{/questionnaire/submit}"
-          th:object="${form}"
-          method="post"
-          data-section="QUESTIONNAIRE"
-          th:attr="data-page=${page.page}, data-page-size=${page.pageSize}">
-      <input type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}" />
+    <!-- Sidebar + Content -->
+    <div class="layout">
+      <!-- LEFT: Images dropdown (present on every page) -->
+      <aside class="sidebar">
+        <details id="imgMenu" class="img-dd">
+          <summary>Images</summary>
+          <ul class="menu">
+            <li>
+              <a href="#" onclick="showImage('/images/sjt/p9-q7.jpg', 'SJT reference p9q7'); return false;">p9q7</a>
+            </li>
+            <li>
+              <a href="#" onclick="showImage('/images/sjt/p9-q8.jpg', 'SJT reference p9q8'); return false;">p9q8</a>
+            </li>
+          </ul>
+        </details>
+      </aside>
 
-      <div th:with="items=${page.questions != null ? page.questions : page.items}" class="q-list">
-        <div th:each="q : ${items}" th:with="k=${q.key != null ? q.key : (q.qkey != null ? q.qkey : '')}">
-          <div class="q"
-               th:if="${k != null and (#strings.startsWith(k,'ipip.') or #strings.startsWith(k,'sjt.'))}"
-               th:with="
-                 typeLc=${q.type != null && !#strings.isEmpty(q.type) ? #strings.toLowerCase(q.type) : ''},
-                 t=${typeLc != '' ? typeLc : ((q.options == null or #lists.isEmpty(q.options)) ? 'single' : 'single')},
-                 text=${q.text != null && !#strings.isEmpty(q.text) ? q.text
-                        : (q.label != null ? q.label : (q.key != null ? q.key : q.qkey))}
-               "
-               th:attr="data-key=${k}, data-type=${t}">
+      <!-- RIGHT: questionnaire content -->
+      <div>
+        <!-- Add data-section + data-page so autosave knows what to store -->
+        <form id="qnForm"
+              th:action="@{/questionnaire/submit}"
+              th:object="${form}"
+              method="post"
+              data-section="QUESTIONNAIRE"
+              th:attr="data-page=${page.page}, data-page-size=${page.pageSize}">
+          <input type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}" />
 
-            <!-- SINGLE -->
-            <div th:if="${t == 'single'}">
-              <h3 class="q-title" th:text="${text}">Question text</h3>
-              <div th:each="o : ${q.options}" class="opt">
-                <input type="radio"
-                       th:id="${k + '-' + o.value}"
-                       th:name="${'answers[' + k + ']'}"
-                       th:value="${o.value}"
-                       th:checked="${form != null && form.answers != null && form.answers[k] == o.value}" />
-                <label th:for="${k + '-' + o.value}" th:text="${o.label}">Label</label>
+          <div th:with="items=${page.questions != null ? page.questions : page.items}" class="q-list">
+            <!-- note: include 'stat' so we can mark indices if needed -->
+            <div th:each="q, stat : ${items}" th:with="k=${q.key}">
+              <div class="q"
+                   th:if="${k != null and (#strings.startsWith(k,'ipip.') or #strings.startsWith(k,'sjt.'))}"
+                   th:with="
+                     typeLc=${q.type != null && !#strings.isEmpty(q.type) ? #strings.toLowerCase(q.type) : ''},
+                     t=${typeLc != '' ? typeLc : ((q.options == null or #lists.isEmpty(q.options)) ? 'single' : 'single')},
+                     text=${q.text != null && !#strings.isEmpty(q.text) ? q.text
+                            : (q.label != null ? q.label : (k != null ? k : ''))}
+                   "
+                   th:attr="data-key=${k}, data-type=${t}, data-index=${stat.count}">
+
+                <!-- SINGLE -->
+                <div th:if="${t == 'single'}">
+                  <h3 class="q-title" th:text="${text}">Question text</h3>
+                  <div th:each="o : ${q.options}" class="opt">
+                    <input type="radio"
+                           th:id="${k + '-' + o.value}"
+                           th:name="${'answers[' + k + ']'}"
+                           th:value="${o.value}"
+                           th:checked="${form != null && form.answers != null && form.answers[k] == o.value}" />
+                    <label th:for="${k + '-' + o.value}" th:text="${o.label}">Label</label>
+                  </div>
+                  <div class="err" aria-live="polite"></div>
+                </div>
+
+                <!-- MULTI -->
+                <div th:if="${t == 'multi'}" th:attr="data-type='multi'">
+                  <h3 class="q-title" th:text="${text}">Question text</h3>
+
+                  <!-- hidden holds comma-separated list -->
+                  <input type="hidden" th:id="${'hidden-' + k}" th:name="${'answers[' + k + ']'}"
+                         th:value="${form != null && form.answers != null ? form.answers[k] : ''}" />
+
+                  <div th:each="o : ${q.options}" class="opt">
+                    <input type="checkbox"
+                           name="__multi__"
+                           th:id="${k + '-' + o.value}"
+                           th:attr="data-key=${k}"
+                           th:value="${o.value}"
+                           th:checked="${form != null && form.answers != null && (',' + form.answers[k] + ',').contains(',' + o.value + ',')}" />
+                    <label th:for="${k + '-' + o.value}" th:text="${o.label}">Label</label>
+                  </div>
+                  <div class="err" aria-live="polite"></div>
+                </div>
+
               </div>
-              <div class="err" aria-live="polite"></div>
             </div>
 
-            <!-- MULTI -->
-            <div th:if="${t == 'multi'}" th:attr="data-type='multi'">
-              <h3 class="q-title" th:text="${text}">Question text</h3>
+            <div class="actions">
+              <a id="toGatingLink" class="btn"
+                 th:href="@{/gating}"
+                 th:if="${page.page == 1}"
+                 th:text="${session.uiLang == 'hi' ? 'गेटिंग पर वापस' : (session.uiLang == 'mr' ? 'गेटिंगकडे परत' : 'Back to Gating')}">
+                Back to Gating
+              </a>
 
-              <!-- hidden holds comma-separated list -->
-              <input type="hidden" th:id="${'hidden-' + k}" th:name="${'answers[' + k + ']'}"
-                     th:value="${form != null && form.answers != null ? form.answers[k] : ''}" />
+              <a id="prevPageLink" class="btn"
+                 th:href="@{/questionnaire(page=${page.page-1}, pageSize=${page.pageSize})}"
+                 th:if="${page.page > 1}">Previous</a>
 
-              <div th:each="o : ${q.options}" class="opt">
-                <input type="checkbox"
-                       name="__multi__"
-                       th:id="${k + '-' + o.value}"
-                       th:attr="data-key=${k}"
-                       th:value="${o.value}"
-                       th:checked="${form != null && form.answers != null && (',' + form.answers[k] + ',').contains(',' + o.value + ',')}" />
-                <label th:for="${k + '-' + o.value}" th:text="${o.label}">Label</label>
-              </div>
-              <div class="err" aria-live="polite"></div>
+              <button class="btn" type="submit" th:if="${page.page == page.totalPages}">Submit</button>
+
+              <a id="nextLink" class="btn"
+                 th:href="@{/questionnaire(page=${page.page+1}, pageSize=${page.pageSize})}"
+                 th:if="${page.page < page.totalPages}">Next</a>
+
+              <span class="muted" th:text="${'Page ' + page.page + ' of ' + page.totalPages}">Page 1 of 1</span>
             </div>
-
           </div>
-        </div>
-
-        <div class="actions">
-          <a id="toGatingLink" class="btn"
-             th:href="@{/gating}"
-             th:if="${page.page == 1}"
-             th:text="${session.uiLang == 'hi' ? 'गेटिंग पर वापस' : (session.uiLang == 'mr' ? 'गेटिंगकडे परत' : 'Back to Gating')}">
-            Back to Gating
-          </a>
-
-          <a id="prevPageLink" class="btn"
-             th:href="@{/questionnaire(page=${page.page-1}, pageSize=${page.pageSize})}"
-             th:if="${page.page > 1}">Previous</a>
-
-          <button class="btn" type="submit" th:if="${page.page == page.totalPages}">Submit</button>
-
-          <a id="nextLink" class="btn"
-             th:href="@{/questionnaire(page=${page.page+1}, pageSize=${page.pageSize})}"
-             th:if="${page.page < page.totalPages}">Next</a>
-
-          <span class="muted" th:text="${'Page ' + page.page + ' of ' + page.totalPages}">Page 1 of 1</span>
-        </div>
+        </form>
       </div>
-    </form>
+    </div>
   </section>
 </main>
 
 <noscript>
-  <div style="max-width:960px;margin:16px auto;padding:12px;color:#991b1b">
+  <div style="max-width:1200px;margin:16px auto;padding:12px;color:#991b1b">
     JavaScript is disabled. Your answers will still submit, but autosave and on‑page validation are off.
   </div>
 </noscript>

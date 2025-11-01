@@ -6,51 +6,75 @@
     <title>Sign up · Pehla Kadam</title>
     <style>
         :root{
-          --bg:#f6f7fb; --card:#ffffff; --text:#0f172a; --muted:#6b7280; --border:#e5e7eb;
-          --brand:#dc2626; --brand-700:#b91c1c; --ring:#fecaca; --maxw:1080px;
+          --bg:#fff6f6; --bg2:#ffffff; --card:#ffffff; --text:#0f172a; --muted:#6b7280; --border:#e5e7eb;
+          --brand:#dc2626; --brand-700:#b91c1c; --ring:#fecaca; --maxw:1180px;
         }
         *{box-sizing:border-box}
-        body{margin:0;background:var(--bg);color:var(--text);font-family:ui-sans-serif,-apple-system,Segoe UI,Roboto,Inter,Arial;line-height:1.6}
+        body{
+          margin:0; color:var(--text); font-family:ui-sans-serif,-apple-system,Segoe UI,Roboto,Inter,Arial; line-height:1.6;
+          background: radial-gradient(1200px 600px at -10% -10%, #ffeaea 0%, var(--bg) 35%, var(--bg2) 100%);
+        }
         a{color:var(--brand);text-decoration:none}
         a:hover{text-decoration:underline}
 
         .shell{min-height:100dvh;display:grid;grid-template-columns:1.1fr 1fr}
         @media (max-width:1000px){.shell{grid-template-columns:1fr}}
 
+        /* LEFT column: logo + pitch */
         .hero{display:flex;align-items:center;justify-content:center;padding:48px}
         .hero-inner{width:100%;max-width:var(--maxw)}
-        .big-logo{display:flex;align-items:center;gap:14px;margin-bottom:12px}
-        .big-logo img{height:64px;width:auto}
-        .brand-name{font-size:42px;font-weight:900;letter-spacing:-.02em}
-        .hero p{color:var(--muted);font-size:1.08rem;margin:10px 0 0;max-width:620px}
+        .brand-link{display:inline-block;line-height:0}
+        .brand-logo{
+          width:clamp(280px, 42vw, 600px);
+          height:auto;
+          display:block;
+          filter:drop-shadow(0 12px 28px rgba(220,38,38,.18));
+        }
+        .hero p{color:var(--muted);font-size:1.12rem;margin:16px 0 0;max-width:680px}
 
+        /* RIGHT column: form card */
         .panel{display:flex;align-items:center;justify-content:center;padding:48px}
-        .card{width:100%;max-width:460px;background:var(--card);border:1px solid var(--border);border-radius:18px;padding:28px;
-              box-shadow:0 2px 10px rgba(16,24,40,.06)}
-        .card h2{margin:0 0 8px;font-size:1.6rem}
+        .card{
+          width:100%;max-width:520px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:30px;
+          box-shadow:0 22px 50px rgba(220,38,38,.06), 0 6px 18px rgba(16,24,40,.06)
+        }
+        .card h2{margin:0 0 8px;font-size:1.75rem}
         .sub{margin:0 0 18px;color:var(--muted)}
-        label{display:block;margin:14px 0 6px;font-weight:600}
-        input{width:100%;height:48px;border:1px solid var(--border);border-radius:14px;padding:0 14px;background:#fff;font-size:1rem}
+        label{display:block;margin:14px 0 6px;font-weight:650}
+        input{
+          width:100%;height:50px;border:1px solid var(--border);border-radius:14px;padding:0 14px;background:#fff;font-size:1rem;
+          transition:border-color .15s, box-shadow .15s, background-color .15s;
+        }
         input:focus{border-color:var(--brand);box-shadow:0 0 0 4px var(--ring);outline:0}
         .meta{margin-top:8px;font-size:.95rem;color:var(--muted)}
-        .row{margin-top:16px}
-        .btn{width:100%;height:50px;border-radius:14px;border:1px solid var(--brand);background:var(--brand);color:#fff;font-weight:800;cursor:pointer}
+        .row{margin-top:18px}
+        .btn{
+          width:100%;height:52px;border-radius:14px;border:1px solid var(--brand);background:var(--brand);
+          color:#fff;font-weight:800;cursor:pointer;transition:transform .04s ease, background .15s, border-color .15s;
+        }
         .btn:hover{background:var(--brand-700);border-color:var(--brand-700)}
+        .btn:active{transform:translateY(1px)}
         .err{margin:12px 0;padding:12px;border-radius:12px;background:#fef2f2;color:#991b1b;border:1px solid var(--ring)}
 
         .pw-row{display:flex;gap:10px;align-items:center}
         .pw-row input{flex:1}
-        .pw-toggle{appearance:none;-webkit-appearance:none;padding:0 14px;height:48px;border:1px solid var(--border);
-                   border-radius:14px;background:#fff;cursor:pointer}
+        .pw-toggle{
+          appearance:none;-webkit-appearance:none;padding:0 14px;height:50px;border:1px solid var(--border);
+          border-radius:14px;background:#fff;cursor:pointer
+        }
         .pw-toggle:hover{background:#f8fafc}
+
+        @media (max-width:640px){
+          .brand-logo{width:clamp(220px, 60vw, 420px)}
+        }
     </style>
     <script>
-        // Optional: show/hide password
+        // Show/hide password
         function togglePw() {
           const i = document.getElementById('password');
           i.type = (i.type === 'password') ? 'text' : 'password';
         }
-        // Optional helper: if username empty, suggest from email left-part
+        // If username empty, suggest from email left part
         function suggestUsername(){
           const u = document.getElementById('username');
           const e = document.getElementById('email');
@@ -66,11 +90,10 @@
     <!-- LEFT: Brand / pitch -->
     <section class="hero">
         <div class="hero-inner">
-            <div class="big-logo">
-                <img th:src="@{/images/logo.png}" src="/images/logo.png" alt="Pehla Kadam logo" />
-                <span class="brand-name">Pehla Kadam</span>
-            </div>
-            <p>Create your account to unlock personalised trade &amp; training recommendations tailored to your location and background.</p>
+            <a class="brand-link" th:href="@{/}" href="/">
+                <img class="brand-logo" th:src="@{/images/sjt/Logo.png}" src="/images/sjt/Logo.png" alt="Pehla Kadam logo" />
+            </a>
+            <p>Create your account to unlock personalised career recommendations tailored to your location and background.</p>
         </div>
     </section>
 
@@ -92,7 +115,6 @@
             <form th:action="@{/CreateUser}" th:object="${user}" method="post" novalidate>
                 <input type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}" />
 
-                <!-- NEW: Username (required) -->
                 <label for="username">Username</label>
                 <input id="username"
                        th:field="*{username}"
@@ -104,7 +126,6 @@
                        pattern="^[A-Za-z0-9._-]{3,30}$"
                        title="3–30 chars; letters, numbers, dot, underscore, hyphen."
                        autocomplete="username" />
-
                 <div class="meta">3–30 characters. Letters, numbers, dot <code>.</code>, underscore <code>_</code>, or hyphen <code>-</code>.</div>
 
                 <label for="email">Email</label>
@@ -127,7 +148,7 @@
                            placeholder="••••••••"
                            required
                            autocomplete="new-password"
-                           pattern="(?=.*[A-Za-z])(?=.*\d)(?!([A-Za-z\d])\1+$).{7,}"
+                           pattern="(?=.*[A-Za-z])(?=.*\\d)(?!([A-Za-z\\d])\\1+$).{7,}"
                            title="≥ 7 chars, include a letter and a number, and not one character repeated." />
                     <button type="button" class="pw-toggle" onclick="togglePw()">Show</button>
                 </div>
