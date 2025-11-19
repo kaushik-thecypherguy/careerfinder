@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Select language</title>
+  <title>Select language & watch</title>
   <style>
     :root{
       --bg:#f8fafc; --card:#ffffff; --text:#0f172a; --muted:#64748b; --border:#e2e8f0;
@@ -32,6 +32,9 @@
     .chip input:checked{border-color:var(--accent);box-shadow:0 0 0 3px #dbeafe inset;background:var(--accent)}
     .chip .title{font-weight:800}
 
+    .frame{position:relative;width:100%;aspect-ratio:16/9;border-radius:14px;overflow:hidden;border:1px solid var(--border);background:#000}
+    iframe{width:100%;height:100%;border:0}
+
     .actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
     .btn{
       display:inline-block;padding:12px 18px;border-radius:12px;border:1px solid var(--accent);
@@ -55,11 +58,14 @@
     <!-- Unlocked -->
     <div th:if="${!locked}">
       <p id="disc" class="lead">
-        Once you confirm your language and continue to the gating pages, you won't be able to change it later. Please decide now.
+        Please watch this short video in full. It explains what happens next and how to answer. Once you confirm your language
+        and continue to the gating pages, you won’t be able to change it later.
       </p>
 
       <form id="langForm" th:action="@{/language/set}" method="post" novalidate>
         <input type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}" />
+
+        <!-- All three chips kept together so JS can listen correctly -->
         <div class="langs" id="langChips" th:data-initial="${selected}">
           <label class="chip">
             <input type="radio" name="lang" value="en" th:checked="${selected=='en'}" />
@@ -75,6 +81,19 @@
           </label>
         </div>
 
+        <!-- Video -->
+        <div class="frame" style="margin-top:10px">
+          <iframe id="ytFrame"
+                  src=""
+                  title="How to use Pehla Kadam"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowfullscreen></iframe>
+        </div>
+        <p class="muted" style="margin-top:8px">
+          If the video doesn’t play, open it on YouTube:
+          <a id="ytLink" href="#" target="_blank" rel="noopener">Open video</a>
+        </p>
+
         <div class="actions">
           <button type="submit" class="btn" name="action" value="start">Continue</button>
         </div>
@@ -83,9 +102,22 @@
 
     <!-- Locked -->
     <div th:if="${locked}">
-      <p class="lead muted">
-        Language is already set for your account. You can continue to the gating questions.
+      <p id="discLocked" class="lead muted">
+        Language is already set for your account. Please watch this short video, then continue to the gating questions.
       </p>
+
+      <div class="frame" style="margin-top:10px">
+        <iframe id="ytFrame"
+                src=""
+                title="How to use Pehla Kadam"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen></iframe>
+      </div>
+      <p class="muted" style="margin-top:8px">
+        If the video doesn’t play, open it on YouTube:
+        <a id="ytLink" href="#" target="_blank" rel="noopener">Open video</a>
+      </p>
+
       <div class="actions">
         <a class="btn" th:href="@{/gating}">Continue</a>
       </div>
@@ -95,29 +127,76 @@
 </main>
 
 <script>
-  // Localized disclaimer text
-  const DISCLAIMER = {
-    en: "Once you confirm your language and continue to the gating pages, you won't be able to change it later. Please decide now.",
-    hi: "भाषा तय करके गेटिंग पेजों पर आगे बढ़ने के बाद, आप भाषा नहीं बदल पाएंगे। कृपया अभी निर्णय लें।",
-    mr: "भाषा निश्चित करून गेटिंग पानांवर पुढे गेल्यावर, नंतर भाषा बदलता येणार नाही. कृपया आत्ताच ठरवा."
+  // Your YouTube links (EN starts at 44s)
+  const VIDEO_BY_LANG = {
+    en: { id: 'N42iBWBpPcA', start: 44, watch: 'https://www.youtube.com/watch?v=N42iBWBpPcA&t=44s' },
+    hi: { id: 'uREqJFwAOkA', start: 0,  watch: 'https://www.youtube.com/watch?v=uREqJFwAOkA' },
+    mr: { id: 'r4F2goiL-vU', start: 0,  watch: 'https://www.youtube.com/watch?v=r4F2goiL-vU' }
   };
 
-  const chips = document.getElementById('langChips');
-  const disc  = document.getElementById('disc');
+  // Localized message
+  const DISCLAIMER = {
+    en: "Please watch this short video in full. It explains what happens next and how to answer. Once you confirm your language and continue to the gating pages, you won’t be able to change it later.",
+    hi: "कृपया यह छोटा वीडियो पूरा देखें। इसमें आगे क्या होगा और कैसे उत्तर देना है, यह बताया गया है। भाषा तय करके गेटिंग पेजों पर आगे बढ़ने के बाद भाषा बदली नहीं जा सकेगी।",
+    mr: "कृपया हे छोटे व्हिडिओ पूर्ण पाहा. यात पुढील पायऱ्या व प्रश्नांना कसे उत्तर द्यायचे ते समजावले आहे. भाषा निश्चित करून गेटिंग पानांवर पुढे गेल्यावर भाषा बदलता येणार नाही."
+  };
+
+  // Grab the right elements (only one unlocked/locked section is rendered server-side)
+  const chips  = document.getElementById('langChips');
+  const disc   = document.getElementById('disc') || document.getElementById('discLocked');
+  const frame  = document.getElementById('ytFrame');
+  const ytLink = document.getElementById('ytLink');
+
+  function setVideo(lang){
+    const cfg = VIDEO_BY_LANG[lang] || VIDEO_BY_LANG.en;
+    const params = new URLSearchParams({
+      rel: 0,
+      modestbranding: 1,
+      start: cfg.start || 0,
+      hl: lang
+    });
+    const url = `https://www.youtube.com/embed/${cfg.id}?${params.toString()}`;
+    if (frame && frame.src !== url) frame.src = url;
+    if (ytLink) ytLink.href = cfg.watch;
+  }
 
   function setDisclaimer(lang){
     if (disc) disc.textContent = DISCLAIMER[lang] || DISCLAIMER.en;
   }
 
-  if (chips) {
-    const initial = chips.dataset.initial || 'en';
+  // Initialize from server-provided selection (or <html lang> when locked)
+  (function init(){
+    let initial = 'en';
+    if (chips) {
+      initial = chips.dataset.initial || 'en';
+    } else {
+      initial = document.documentElement.getAttribute('lang') || 'en';
+    }
+    setVideo(initial);
     setDisclaimer(initial);
+  })();
+
+  // Update on language change (unlocked)
+  if (chips) {
     chips.addEventListener('change', (e)=>{
       if (e.target && e.target.name === 'lang') {
-        setDisclaimer(e.target.value);
+        const lang = e.target.value;
+        setVideo(lang);
+        setDisclaimer(lang);
+        if (frame) frame.scrollIntoView({behavior:'smooth', block:'center'});
       }
     });
   }
 </script>
+
+<noscript>
+  <div class="wrap" style="margin-top:8px">
+    <p class="muted">JavaScript is required to load the video on this page. You can also open the relevant video on YouTube:
+      English – <a href="https://www.youtube.com/watch?v=N42iBWBpPcA&t=44s" target="_blank" rel="noopener">link</a>,
+      हिन्दी – <a href="https://www.youtube.com/watch?v=uREqJFwAOkA" target="_blank" rel="noopener">link</a>,
+      मराठी – <a href="https://www.youtube.com/watch?v=r4F2goiL-vU" target="_blank" rel="noopener">link</a>.
+    </p>
+  </div>
+</noscript>
 </body>
 </html>
