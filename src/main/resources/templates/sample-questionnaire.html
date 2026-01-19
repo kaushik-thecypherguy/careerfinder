@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.language}" lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title th:text="#{sample.q.pageTitle}">Sample questionnaire · Pehla Kadam</title>
+
+  <style>
+    :root{
+      --bg:#f5f7fb;
+      --card:#fff;
+      --text:#0f172a;
+      --muted:#6b7280;
+      --border:#e5e7eb;
+
+      --brand:#dc2626;
+      --brand700:#b91c1c;
+
+      --shadow2: 0 10px 24px rgba(15,23,42,.06);
+    }
+
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,-apple-system,Segoe UI,Roboto,Arial}
+
+    a{color:var(--brand);text-decoration:none}
+    a:hover{text-decoration:underline}
+
+    .wrap{max-width:1200px;margin:28px auto;padding:0 16px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:var(--shadow2)}
+
+    .row{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+    .muted{color:var(--muted)}
+    h1{margin:0 0 8px;font-size:1.8rem;letter-spacing:-0.02em}
+
+    .topRight{display:flex;flex-direction:column;gap:10px;align-items:flex-end}
+    .langRow{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+    .langLabel{font-weight:900;color:var(--muted);font-size:.92rem;padding-right:4px}
+
+    .pill{
+      display:inline-flex;align-items:center;justify-content:center;
+      height:34px;padding:0 12px;border-radius:999px;
+      border:1px solid var(--border);background:#fff;color:var(--text);
+      font-weight:900;font-size:.95rem;white-space:nowrap;
+    }
+    .pill:hover{background:#f8fafc;text-decoration:none}
+    .pill.active{
+      border-color: rgba(220,38,38,.45);
+      box-shadow: 0 0 0 3px rgba(220,38,38,.12);
+    }
+    .pill.primary{
+      background:var(--brand);
+      border-color:var(--brand);
+      color:#fff;
+    }
+    .pill.primary:hover{background:var(--brand700);border-color:var(--brand700)}
+
+    .notice{
+      border:1px solid rgba(220,38,38,.25);
+      background:#fff5f5;
+      border-radius:14px;
+      padding:12px 14px;
+      margin:10px 0 6px;
+      color:#111827;
+      line-height:1.45;
+    }
+    .notice ul{ margin:8px 0 0 18px; }
+    .notice li{ margin:4px 0; }
+
+    /* One-column layout (Images sidebar removed) */
+    .layout{margin-top:12px}
+
+    @media (max-width: 900px){
+      .topRight{align-items:flex-start}
+      .langRow{justify-content:flex-start}
+    }
+
+    .q-list{counter-reset: qn}
+    .q{margin:14px 0;padding:16px;border:1px solid var(--border);border-radius:14px;background:#fff}
+    .q h3{margin:0 0 10px;font-size:1.06rem;line-height:1.35}
+    .q .q-title::before{counter-increment: qn; content: counter(qn) ". "; font-weight:900; margin-right:4px; color:#111827;}
+    .opt{display:flex;align-items:flex-start;gap:10px;margin:8px 0}
+    .opt input{accent-color:var(--brand); margin-top:3px}
+    .help{color:var(--muted); margin:-2px 0 10px; font-size:.95rem}
+
+    .actions{display:flex;gap:12px;margin-top:18px;align-items:center;flex-wrap:wrap}
+    .btn{
+      padding:10px 16px;border-radius:12px;border:1px solid var(--brand);
+      background:var(--brand);color:#fff;font-weight:900;cursor:pointer;
+      text-decoration:none;display:inline-flex;align-items:center
+    }
+    .btn:hover{background:var(--brand700);border-color:var(--brand700)}
+    .btn:focus{outline:3px solid rgba(220,38,38,.22);outline-offset:2px}
+    .btn.secondary{background:#fff;color:var(--text);border-color:var(--border)}
+    .btn.secondary:hover{background:#f8fafc}
+
+    .q.error{border-color:#fecaca;background:#fff7f7}
+    .err{display:none;color:#b91c1c;font-size:.92rem;margin-top:8px}
+    .q.error .err{display:block}
+  </style>
+</head>
+
+<body>
+<main class="wrap">
+  <section class="card">
+    <div class="row">
+      <div>
+        <h1 th:text="#{sample.q.title}">Sample Questionnaire</h1>
+        <div class="muted">
+          <span th:text="#{sample.common.language}">Language</span>:
+          <b th:text="${#locale.language}">en</b>
+          (<span th:text="#{sample.common.preview}">preview</span>)
+        </div>
+      </div>
+
+      <div class="topRight">
+        <div class="muted" style="font-weight:800" th:text="#{sample.q.savedLocal}">Saved locally (not submitted)</div>
+
+        <div class="langRow" aria-label="Language">
+          <span class="langLabel" th:text="#{sample.common.language}">Language</span>
+
+          <a class="pill"
+             th:href="@{/sample/questions(lang='en')}"
+             th:classappend="${#locale.language=='en'} ? ' active' : ''"
+             th:text="#{sample.common.lang.en}">English</a>
+
+          <a class="pill"
+             th:href="@{/sample/questions(lang='hi')}"
+             th:classappend="${#locale.language=='hi'} ? ' active' : ''"
+             th:text="#{sample.common.lang.hi}">हिन्दी</a>
+
+          <a class="pill"
+             th:href="@{/sample/questions(lang='mr')}"
+             th:classappend="${#locale.language=='mr'} ? ' active' : ''"
+             th:text="#{sample.common.lang.mr}">मराठी</a>
+
+          <a class="pill" th:href="@{/login}" href="/login" th:text="#{sample.common.login}">Log in</a>
+          <a class="pill primary" th:href="@{/add-user}" href="/add-user" th:text="#{sample.common.signup}">Sign up</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="notice" role="note" aria-label="Preview notice">
+      <b th:text="#{sample.q.noticeTitle}">Preview only. Please do not judge yourself by this.</b>
+      <ul>
+        <li th:utext="#{sample.q.notice1}">This sample has only <b>6 questions</b>. The real test is longer and gives a full report.</li>
+        <li th:utext="#{sample.q.notice2}">This does <b>not</b> measure your full potential. It only shows the UI and flow.</li>
+        <li th:utext="#{sample.q.notice3}">Your sample answers are saved only in this tab (<b>sessionStorage</b>).</li>
+      </ul>
+    </div>
+
+    <div class="layout">
+      <form id="sampleForm" novalidate>
+        <div class="q-list">
+
+          <div class="q" data-key="sjt.gasLeak" data-type="multi">
+            <h3 class="q-title" th:text="#{sample.q1.text}">You smell gas near the stove/cylinder at home. Which actions would you take?</h3>
+            <div class="help" th:text="#{sample.q1.help}">Select all actions you would do.</div>
+
+            <input type="hidden" id="hidden-sjt.gasLeak" />
+
+            <label class="opt"><input type="checkbox" name="__multi__" data-key="sjt.gasLeak" value="1"> <span th:text="#{sample.q1.o1}">Turn all knobs OFF and close the regulator valve.</span></label>
+            <label class="opt"><input type="checkbox" name="__multi__" data-key="sjt.gasLeak" value="2"> <span th:text="#{sample.q1.o2}">Open doors/windows for ventilation; keep everyone away.</span></label>
+            <label class="opt"><input type="checkbox" name="__multi__" data-key="sjt.gasLeak" value="3"> <span th:text="#{sample.q1.o3}">Do not use electrical switches; call for help from a safe distance.</span></label>
+            <label class="opt"><input type="checkbox" name="__multi__" data-key="sjt.gasLeak" value="4"> <span th:text="#{sample.q1.o4}">After ventilation, use soap-water to check for leaks.</span></label>
+            <label class="opt"><input type="checkbox" name="__multi__" data-key="sjt.gasLeak" value="5"> <span th:text="#{sample.q1.o5}">Use a match/lighter to find where the leak is coming from.</span></label>
+            <div class="err" aria-live="polite"></div>
+          </div>
+
+          <div class="q" data-key="sjt.directions" data-type="multi">
+            <h3 class="q-title" th:text="#{sample.q2.text}">A friend’s map is not working; they need phone directions. What do you do?</h3>
+            <div class="help" th:text="#{sample.q2.help}">Select all actions you would take.</div>
+
+            <input type="hidden" id="hidden-sjt.directions" />
+
+            <label class="opt"><input type="checkbox" name="__multi__" data-key="sjt.directions" value="1"> <span th:text="#{sample.q2.o1}">Ask where they are now and the nearest landmark.</span></label>
+            <label class="opt"><input type="checkbox" name="__multi__" data-key="sjt.directions" value="2"> <span th:text="#{sample.q2.o2}">Give short step-by-step directions with clear turns and landmarks.</span></label>
+            <label class="opt"><input type="checkbox" name="__multi__" data-key="sjt.directions" value="3"> <span th:text="#{sample.q2.o3}">Confirm they reached the last step before giving the next step.</span></label>
+            <label class="opt"><input type="checkbox" name="__multi__" data-key="sjt.directions" value="4"> <span th:text="#{sample.q2.o4}">Send a short SMS with key turns/landmarks (in case the call drops).</span></label>
+            <label class="opt"><input type="checkbox" name="__multi__" data-key="sjt.directions" value="5"> <span th:text="#{sample.q2.o5}">Explain very fast and hang up immediately.</span></label>
+            <div class="err" aria-live="polite"></div>
+          </div>
+
+          <div class="q" data-key="ipip.detail" data-type="single">
+            <h3 class="q-title" th:text="#{sample.q3.text}">Pay attention to details.</h3>
+            <div class="help" th:text="#{sample.q3.help}">How accurate is this for you?</div>
+
+            <label class="opt"><input type="radio" name="answers[ipip.detail]" value="1"> <span th:text="#{sample.likert.1}">Very inaccurate</span></label>
+            <label class="opt"><input type="radio" name="answers[ipip.detail]" value="2"> <span th:text="#{sample.likert.2}">Moderately inaccurate</span></label>
+            <label class="opt"><input type="radio" name="answers[ipip.detail]" value="3"> <span th:text="#{sample.likert.3}">Neither accurate nor inaccurate</span></label>
+            <label class="opt"><input type="radio" name="answers[ipip.detail]" value="4"> <span th:text="#{sample.likert.4}">Moderately accurate</span></label>
+            <label class="opt"><input type="radio" name="answers[ipip.detail]" value="5"> <span th:text="#{sample.likert.5}">Very accurate</span></label>
+            <div class="err" aria-live="polite"></div>
+          </div>
+
+          <div class="q" data-key="ipip.people" data-type="single">
+            <h3 class="q-title" th:text="#{sample.q4.text}">Feel comfortable around people.</h3>
+            <div class="help" th:text="#{sample.q4.help}">How accurate is this for you?</div>
+
+            <label class="opt"><input type="radio" name="answers[ipip.people]" value="1"> <span th:text="#{sample.likert.1}">Very inaccurate</span></label>
+            <label class="opt"><input type="radio" name="answers[ipip.people]" value="2"> <span th:text="#{sample.likert.2}">Moderately inaccurate</span></label>
+            <label class="opt"><input type="radio" name="answers[ipip.people]" value="3"> <span th:text="#{sample.likert.3}">Neither accurate nor inaccurate</span></label>
+            <label class="opt"><input type="radio" name="answers[ipip.people]" value="4"> <span th:text="#{sample.likert.4}">Moderately accurate</span></label>
+            <label class="opt"><input type="radio" name="answers[ipip.people]" value="5"> <span th:text="#{sample.likert.5}">Very accurate</span></label>
+            <div class="err" aria-live="polite"></div>
+          </div>
+
+          <div class="q" data-key="gate.education" data-type="single">
+            <h3 class="q-title" th:text="#{sample.q5.text}">What is the highest education level you have completed?</h3>
+
+            <label class="opt"><input type="radio" name="answers[gate.education]" value="0"> <span th:text="#{sample.edu.0}">No formal schooling</span></label>
+            <label class="opt"><input type="radio" name="answers[gate.education]" value="1"> <span th:text="#{sample.edu.1}">8th pass</span></label>
+            <label class="opt"><input type="radio" name="answers[gate.education]" value="2"> <span th:text="#{sample.edu.2}">10th pass (SSC)</span></label>
+            <label class="opt"><input type="radio" name="answers[gate.education]" value="3"> <span th:text="#{sample.edu.3}">12th pass (HSC)</span></label>
+            <label class="opt"><input type="radio" name="answers[gate.education]" value="4"> <span th:text="#{sample.edu.4}">Diploma / ITI</span></label>
+            <label class="opt"><input type="radio" name="answers[gate.education]" value="5"> <span th:text="#{sample.edu.5}">Graduate</span></label>
+            <label class="opt"><input type="radio" name="answers[gate.education]" value="6"> <span th:text="#{sample.edu.6}">Post-graduate or higher</span></label>
+            <div class="err" aria-live="polite"></div>
+          </div>
+
+          <div class="q" data-key="gate.smartphone" data-type="single">
+            <h3 class="q-title" th:text="#{sample.q6.text}">Do you have access to a smartphone?</h3>
+
+            <label class="opt"><input type="radio" name="answers[gate.smartphone]" value="yes"> <span th:text="#{sample.yes}">Yes</span></label>
+            <label class="opt"><input type="radio" name="answers[gate.smartphone]" value="no"> <span th:text="#{sample.no}">No</span></label>
+            <div class="err" aria-live="polite"></div>
+          </div>
+
+        </div>
+
+        <div class="actions">
+          <a class="btn secondary" th:href="@{/(lang=${#locale.language})}" href="/" th:text="#{sample.q.back}">Back</a>
+          <a class="btn secondary" th:href="@{/add-user}" href="/add-user" th:text="#{sample.q.skip}">Skip & sign up</a>
+          <button class="btn" type="submit" id="seeResultsBtn" th:text="#{sample.q.submit}">See sample results →</button>
+          <span class="muted" style="font-weight:900" th:text="#{sample.q.previewPill}">Preview (6 questions)</span>
+        </div>
+      </form>
+    </div>
+  </section>
+</main>
+
+<script th:inline="javascript">
+  (function(){
+    const STORE_KEY = "pk_sample_preview_v1";
+
+    const RESULT_URL = /*[[@{/sample/result(lang=${#locale.language})}]]*/ "/sample/result";
+    const MSG = /*[[#{sample.q.validation.answer}]]*/ "Please answer this question.";
+
+    const $  = (sel, root) => (root || document).querySelector(sel);
+    const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
+
+    function loadStore(){
+      try { return JSON.parse(sessionStorage.getItem(STORE_KEY) || '{"answers":{}}'); }
+      catch(e){ return { answers:{} }; }
+    }
+    function saveStore(obj){
+      try { sessionStorage.setItem(STORE_KEY, JSON.stringify(obj || {answers:{}})); } catch(e){}
+    }
+    function loadAnswers(){
+      const s = loadStore();
+      return (s && s.answers && typeof s.answers === "object") ? s.answers : {};
+    }
+    function saveAnswers(map){
+      saveStore({ answers: map || {}, updatedAt: Date.now() });
+    }
+
+    function packCheckboxesIntoHidden(){
+      const byKey = {};
+      $$('input[name="__multi__"]').forEach(cb=>{
+        const key = cb.getAttribute('data-key');
+        (byKey[key] ||= []);
+        if(cb.checked) byKey[key].push(cb.value);
+      });
+
+      Object.keys(byKey).forEach(k=>{
+        const hidden = document.getElementById('hidden-' + k);
+        if(hidden) hidden.value = (byKey[k] || []).join(',');
+      });
+
+      $$('input[type="hidden"][id^="hidden-"]').forEach(h=>{
+        const key = h.id.substring('hidden-'.length);
+        if(!byKey[key]) h.value = '';
+      });
+
+      return byKey;
+    }
+
+    function mark(qEl, bad, msg){
+      qEl.classList.toggle('error', bad);
+      const err = qEl.querySelector('.err');
+      if(err) err.textContent = bad ? msg : '';
+    }
+
+    function validateAll(){
+      let firstBad = null;
+
+      $$('.q[data-key]').forEach(q=>{
+        const key = q.getAttribute('data-key');
+        const typ = (q.getAttribute('data-type') || '').toLowerCase();
+        let ok = false;
+
+        if(typ === 'single'){
+          ok = !!$(`input[type="radio"][name="answers[${key}]"]:checked`, q);
+        }else if(typ === 'multi'){
+          ok = $$(`input[type="checkbox"][name="__multi__"][data-key="${key}"]:checked`, q).length > 0;
+        }
+
+        mark(q, !ok, MSG);
+        if(!ok && !firstBad) firstBad = q;
+      });
+
+      if(firstBad){
+        firstBad.scrollIntoView({behavior:'smooth', block:'center'});
+        const f = $('input', firstBad);
+        if(f) { try{ f.focus({preventScroll:true}); }catch(e){} }
+        return false;
+      }
+      return true;
+    }
+
+    function hydrate(){
+      const map = loadAnswers();
+
+      $$('input[type="radio"][name^="answers["]').forEach(r=>{
+        const name = r.getAttribute('name') || '';
+        const m = name.match(/^answers\[(.+?)\]$/);
+        const key = m ? m[1] : null;
+        if(key && map[key] != null){
+          r.checked = (r.value === String(map[key]));
+        }
+      });
+
+      Object.keys(map).forEach(k=>{
+        const val = String(map[k] || '');
+        const parts = val ? val.split(',') : [];
+        $$(`input[type="checkbox"][name="__multi__"][data-key="${k}"]`).forEach(cb=>{
+          cb.checked = parts.includes(cb.value);
+        });
+        const hidden = document.getElementById('hidden-' + k);
+        if(hidden) hidden.value = val;
+      });
+    }
+
+    function onChange(){
+      const map = loadAnswers();
+
+      $$('input[type="radio"][name^="answers["]').forEach(r=>{
+        if(r.checked){
+          const m = (r.name || '').match(/^answers\[(.+?)\]$/);
+          if(m && m[1]) map[m[1]] = r.value;
+        }
+      });
+
+      packCheckboxesIntoHidden();
+      $$('input[type="hidden"][id^="hidden-"]').forEach(h=>{
+        const key = h.id.substring('hidden-'.length);
+        map[key] = h.value || '';
+      });
+
+      saveAnswers(map);
+    }
+
+    const form = document.getElementById('sampleForm');
+
+    form.addEventListener('change', function(e){
+      const q = e.target && e.target.closest ? e.target.closest('.q') : null;
+      if(q) q.classList.remove('error');
+      onChange();
+    }, {passive:true});
+
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      if(!validateAll()) return;
+      onChange();
+      window.location.href = RESULT_URL;
+    });
+
+    hydrate();
+    packCheckboxesIntoHidden();
+  })();
+</script>
+</body>
+</html>
+

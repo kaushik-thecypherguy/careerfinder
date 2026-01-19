@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.language}" lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title th:text="#{sample.landing.pageTitle}">Sample test · Pehla Kadam</title>
+
+    <style>
+        :root{
+          --bg1:#fff6f6;
+          --bg2:#ffffff;
+          --card:#ffffff;
+          --text:#0f172a;
+          --muted:#6b7280;
+          --border:#e5e7eb;
+
+          --brand:#dc2626;
+          --brand700:#b91c1c;
+
+          --shadow: 0 18px 45px rgba(16,24,40,.08);
+          --shadow2: 0 10px 24px rgba(15,23,42,.06);
+
+          --maxw:1120px;
+        }
+
+        *{ box-sizing:border-box; }
+        html,body{ height:100%; }
+        body{
+          margin:0;
+          font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Inter, Arial;
+          color:var(--text);
+          line-height:1.5;
+          background: radial-gradient(1200px 600px at -10% -10%, #ffeaea 0%, var(--bg1) 35%, var(--bg2) 100%);
+        }
+
+        a{ color:var(--brand); text-decoration:none; }
+        a:hover{ text-decoration:underline; }
+
+        .topbar{
+          position:fixed; inset:0 0 auto 0;
+          z-index:20;
+          display:flex;
+          align-items:center;
+          justify-content:flex-end;
+          padding:14px 18px;
+          pointer-events:none;
+        }
+        .topbar .nav{
+          pointer-events:auto;
+          display:flex; gap:10px; align-items:center;
+          background:rgba(255,255,255,.85);
+          border:1px solid rgba(229,231,235,.95);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          border-radius:999px;
+          padding:8px 10px;
+          box-shadow: var(--shadow2);
+          flex-wrap:wrap;
+          justify-content:flex-end;
+        }
+        .langLabel{
+          font-weight:900;
+          color:var(--muted);
+          font-size:.9rem;
+          padding:0 6px;
+          white-space:nowrap;
+        }
+        .sep{
+          width:1px;
+          height:22px;
+          background:var(--border);
+          margin:0 4px;
+        }
+        .pill{
+          display:inline-flex; align-items:center; justify-content:center;
+          height:36px; padding:0 14px;
+          border-radius:999px;
+          border:1px solid var(--border);
+          color:var(--text);
+          font-weight:800;
+          background:#fff;
+          white-space:nowrap;
+        }
+        .pill:hover{ background:#f8fafc; text-decoration:none; }
+        .pill.active{
+          border-color: rgba(220,38,38,.45);
+          box-shadow: 0 0 0 3px rgba(220,38,38,.12);
+        }
+        .pill.primary{
+          background:var(--brand);
+          border-color:var(--brand);
+          color:#fff;
+        }
+        .pill.primary:hover{ background:var(--brand700); border-color:var(--brand700); }
+
+        .shell{
+          min-height:100dvh;
+          display:grid;
+          grid-template-columns: 1.1fr 1fr;
+          padding-top:70px;
+        }
+        @media (max-width: 1000px){ .shell{ grid-template-columns:1fr; } }
+
+        .hero, .panel{ padding:48px; display:flex; align-items:center; justify-content:center; }
+        .inner{ width:100%; max-width:var(--maxw); }
+
+        .brand-link{ display:inline-block; line-height:0; }
+        .brand-logo{
+          width:clamp(240px, 42vw, 560px);
+          height:auto; display:block;
+          filter:drop-shadow(0 12px 28px rgba(220,38,38,.18));
+        }
+
+        h1{ margin:18px 0 8px; font-size:2.05rem; letter-spacing:-0.02em; line-height:1.2; }
+        p.lead{ margin:10px 0 0; color:var(--muted); font-size:1.08rem; max-width:680px; }
+
+        .tags{ display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; }
+        .tag{
+          display:inline-flex; align-items:center; gap:8px;
+          padding:8px 12px; border-radius:999px;
+          background:#fff; border:1px solid var(--border);
+          box-shadow: 0 8px 18px rgba(15,23,42,.05);
+          font-weight:900; font-size:.92rem; color:#111827;
+        }
+        .dot{ width:8px;height:8px;border-radius:999px;background:var(--brand);display:inline-block; }
+
+        .bullets{ margin:14px 0 0; padding:0; list-style:none; max-width:680px; }
+        .bullets li{
+          display:flex; gap:10px; align-items:flex-start;
+          margin:10px 0; color:var(--muted); font-size:1.02rem;
+        }
+        .tick{
+          width:22px;height:22px; border-radius:999px;
+          background:#fff; border:1px solid var(--border);
+          display:inline-flex; align-items:center; justify-content:center;
+          box-shadow: 0 8px 18px rgba(15,23,42,.05);
+          color:var(--brand); font-weight:1000; margin-top:2px;
+          flex:0 0 auto;
+        }
+
+        .card{
+          width:100%; max-width:680px;
+          background:var(--card);
+          border:1px solid var(--border);
+          border-radius:20px;
+          padding:24px;
+          box-shadow: 0 22px 50px rgba(220,38,38,.06), 0 6px 18px rgba(16,24,40,.06);
+        }
+        .badge{
+          display:inline-flex; align-items:center; gap:8px;
+          padding:8px 12px; border-radius:999px;
+          background:#fff; border:1px solid var(--border);
+          font-weight:900; font-size:.92rem; color:#111827;
+          box-shadow: 0 8px 18px rgba(15,23,42,.05);
+        }
+        .divider{ height:1px; background:var(--border); margin:16px 0; }
+
+        .btn{
+          display:inline-flex; align-items:center; justify-content:center;
+          width:100%;
+          height:56px;
+          border-radius:16px;
+          border:1px solid var(--brand);
+          background:var(--brand);
+          color:#fff;
+          font-weight:1000;
+          font-size:1.06rem;
+          cursor:pointer;
+          transition: transform .04s ease, background .15s, border-color .15s;
+          text-decoration:none;
+        }
+        .btn:hover{ background:var(--brand700); border-color:var(--brand700); text-decoration:none; }
+        .btn:active{ transform:translateY(1px); }
+        .btn.secondary{
+          background:#fff;
+          color:var(--text);
+          border-color:var(--border);
+          font-weight:900;
+        }
+        .btn.secondary:hover{ background:#f8fafc; border-color:var(--border); }
+
+        .stack{ display:flex; flex-direction:column; gap:10px; margin-top:14px; }
+        .helper{ margin-top:10px; color:var(--muted); font-size:.95rem; }
+        .fine{ margin-top:14px; color:var(--muted); font-size:.95rem; max-width:680px; }
+    </style>
+</head>
+
+<body>
+<header class="topbar" aria-label="Quick navigation">
+    <nav class="nav">
+        <span class="langLabel" th:text="#{sample.common.language}">Language</span>
+
+        <a class="pill"
+           th:href="@{/(lang='en')}"
+           th:classappend="${#locale.language=='en'} ? ' active' : ''"
+           th:attr="aria-current=${#locale.language=='en'} ? 'page' : null"
+           th:text="#{sample.common.lang.en}">English</a>
+
+        <a class="pill"
+           th:href="@{/(lang='hi')}"
+           th:classappend="${#locale.language=='hi'} ? ' active' : ''"
+           th:attr="aria-current=${#locale.language=='hi'} ? 'page' : null"
+           th:text="#{sample.common.lang.hi}">हिन्दी</a>
+
+        <a class="pill"
+           th:href="@{/(lang='mr')}"
+           th:classappend="${#locale.language=='mr'} ? ' active' : ''"
+           th:attr="aria-current=${#locale.language=='mr'} ? 'page' : null"
+           th:text="#{sample.common.lang.mr}">मराठी</a>
+
+        <span class="sep" aria-hidden="true"></span>
+
+        <a class="pill" th:href="@{/login}" href="/login" th:text="#{sample.common.login}">Log in</a>
+        <a class="pill primary" th:href="@{/add-user}" href="/add-user" th:text="#{sample.common.signup}">Sign up</a>
+    </nav>
+</header>
+
+<main class="shell">
+    <section class="hero">
+        <div class="inner">
+            <a class="brand-link" th:href="@{/(lang=${#locale.language})}" href="/">
+                <img class="brand-logo" th:src="@{/images/sjt/Logo.png}" src="/images/sjt/Logo.png" alt="Pehla Kadam logo" />
+            </a>
+
+            <h1 th:text="#{sample.landing.heroTitle}">Your first step to skill‑based careers</h1>
+            <p class="lead" th:utext="#{sample.landing.lead}">
+                Try a short <b>sample test</b> to see the exact UI and question style.
+            </p>
+
+            <div class="tags" aria-label="Sample highlights">
+                <div class="tag"><span class="dot"></span> <span th:text="#{sample.landing.tag1}">6 questions only</span></div>
+                <div class="tag"><span class="dot"></span> <span th:text="#{sample.landing.tag2}">2 SJT + 2 IPIP + 2 eligibility</span></div>
+                <div class="tag"><span class="dot"></span> <span th:text="#{sample.landing.tag3}">Preview (not scored)</span></div>
+            </div>
+
+            <ul class="bullets" aria-label="What you’ll see">
+                <li><span class="tick">✓</span><span th:utext="#{sample.landing.b1}">Same <b>questionnaire layout</b> …</span></li>
+                <li><span class="tick">✓</span><span th:utext="#{sample.landing.b2}">Same <b>result screen style</b> …</span></li>
+                <li><span class="tick">✓</span><span th:utext="#{sample.landing.b3}">Your sample answers …</span></li>
+            </ul>
+
+            <p class="fine" th:utext="#{sample.landing.privacy}">
+                <b>Privacy:</b> sample answers are saved only in your browser tab.
+            </p>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="card" aria-label="Start sample test">
+            <div class="badge"><span class="dot"></span> <span th:text="#{sample.landing.badge}">Sample test (no sign‑up needed)</span></div>
+
+            <h2 style="margin:12px 0 6px;font-size:1.65rem;letter-spacing:-0.02em"
+                th:text="#{sample.landing.cardTitle}">Want to try a quick sample?</h2>
+
+            <p style="margin:0;color:var(--muted)" th:utext="#{sample.landing.cardLead}">
+                Answer 6 questions, then see a <b>demo result screen</b>.
+            </p>
+
+            <div class="divider"></div>
+
+            <div class="stack">
+                <a class="btn" id="startLink"
+                   th:href="@{/sample/questions(lang=${#locale.language})}"
+                   href="/sample/questions"
+                   th:text="#{sample.landing.start}">Start sample test →</a>
+
+                <a class="btn secondary" th:href="@{/add-user}" href="/add-user" th:text="#{sample.landing.skip}">
+                    Skip sample and sign up
+                </a>
+            </div>
+
+            <p class="helper" id="resumeHint" style="display:none" th:text="#{sample.landing.resumeHint}">
+                Looks like you started earlier — you can resume from where you left off.
+            </p>
+
+            <p class="helper" style="margin-top:12px">
+                <span th:text="#{sample.landing.alreadyPrefix}">Already registered?</span>
+                <a th:href="@{/login}" href="/login"><b th:text="#{sample.common.login}">Log in</b></a>
+                <span th:text="#{sample.landing.alreadySuffix}">to take the full test and get your report.</span>
+            </p>
+        </div>
+    </section>
+</main>
+
+<script th:inline="javascript">
+    (function(){
+      const STORE_KEY = "pk_sample_preview_v1";
+      const hint = document.getElementById("resumeHint");
+      const start = document.getElementById("startLink");
+
+      const startText  = /*[[#{sample.landing.start}]]*/ "Start sample test →";
+      const resumeText = /*[[#{sample.landing.resume}]]*/ "Resume sample test →";
+
+      try{
+        const raw = sessionStorage.getItem(STORE_KEY);
+        if(!raw) { start.textContent = startText; return; }
+        const parsed = JSON.parse(raw);
+        const answers = (parsed && parsed.answers && typeof parsed.answers === "object") ? parsed.answers : {};
+        const any = Object.keys(answers).length > 0;
+
+        if(any){
+          hint.style.display = "block";
+          start.textContent = resumeText;
+        } else {
+          start.textContent = startText;
+        }
+      }catch(e){
+        start.textContent = startText;
+      }
+    })();
+</script>
+</body>
+</html>

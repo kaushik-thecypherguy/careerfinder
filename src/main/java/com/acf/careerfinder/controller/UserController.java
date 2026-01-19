@@ -3,6 +3,7 @@ package com.acf.careerfinder.controller;
 import com.acf.careerfinder.model.UserData;
 import com.acf.careerfinder.service.PasswordValidator;
 import com.acf.careerfinder.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -22,7 +23,36 @@ public class UserController {
     @Autowired private PasswordValidator passwordValidator;
 
     @GetMapping("/")
-    public String home() { return "redirect:/resume"; }
+    public String home(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        String email = (session == null) ? null : (String) session.getAttribute("USER_EMAIL");
+
+        if (email == null || email.isBlank()) {
+            return "sample-questions"; // templates/sample-questions.html
+        }
+        return "redirect:/resume";
+    }
+
+    @GetMapping("/sample")
+    public String sampleHome() {
+        return "redirect:/";
+    }
+
+    @GetMapping("/sample/questions")
+    public String sampleQuestionnaire(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        String email = (session == null) ? null : (String) session.getAttribute("USER_EMAIL");
+        if (email != null && !email.isBlank()) return "redirect:/resume";
+        return "sample-questionnaire";
+    }
+
+    @GetMapping("/sample/result")
+    public String sampleResult(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        String email = (session == null) ? null : (String) session.getAttribute("USER_EMAIL");
+        if (email != null && !email.isBlank()) return "redirect:/resume";
+        return "sample-result";
+    }
 
     @GetMapping("/add-user")
     public String showAddUserForm(Model model) {
@@ -41,7 +71,6 @@ public class UserController {
             passwordValidator.validateOrThrow(u.getUserpassword());
             service.createUser(u);
 
-            // Auto-login; language will be chosen on /start via /resume
             session.setAttribute("USER_EMAIL", u.getEmail());
             return "redirect:/resume";
         } catch (IllegalArgumentException weakPw) {
@@ -77,6 +106,7 @@ public class UserController {
             ra.addAttribute("email", loginKey);
             return "redirect:/login";
         }
+
         UserData user = maybeUser.get();
         if (!user.isEnabled()) {
             ra.addAttribute("error", "disabled");
@@ -101,10 +131,10 @@ public class UserController {
 
     @PostMapping("/logout")
     public String doLogoutPost(HttpSession session, RedirectAttributes ra) {
-        session.invalidate(); ra.addAttribute("logout", ""); return "redirect:/login";
+        session.invalidate();
+        ra.addAttribute("logout", "");
+        return "redirect:/login";
     }
-
-    /* ------------ one-time "note your login ID" helpers ------------ */
 
     @GetMapping("/account/login-info")
     @ResponseBody

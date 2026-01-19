@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.language}" lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title th:text="#{sample.r.pageTitle}">Sample results · Pehla Kadam</title>
+
+  <style>
+    :root{
+      --bg:#f6f7fb; --card:#ffffff; --text:#0f172a; --muted:#6b7280; --border:#e5e7eb;
+      --brand:#dc2626; --brand700:#b91c1c;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    .wrap{max-width:1280px;margin:34px auto;padding:0 24px;display:grid;grid-template-columns:3fr 1.25fr;gap:24px}
+    @media (max-width:1100px){.wrap{grid-template-columns:1fr}}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px;box-shadow:0 1px 10px rgba(0,0,0,.05)}
+    h1{margin:0 0 10px;font-size:1.8rem}
+    h2{margin:18px 0 10px;font-size:1.2rem}
+    p.lead{margin:0 0 14px;color:var(--muted)}
+    .muted{color:var(--muted)}
+    .small{font-size:.92rem}
+
+    .notice{
+      border:1px solid rgba(220,38,38,.25);
+      background:#fff5f5;
+      border-radius:14px;
+      padding:12px 14px;
+      margin:10px 0 14px;
+      color:#111827;
+      line-height:1.45;
+    }
+    .notice ul{ margin:8px 0 0 18px; }
+    .notice li{ margin:4px 0; }
+
+    .btn{padding:10px 16px;border-radius:12px;border:1px solid var(--brand);background:var(--brand);
+         color:#fff;font-weight:900;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+    .btn:hover{background:var(--brand700);border-color:var(--brand700)}
+    .btn.secondary{background:#fff;color:var(--text);border-color:var(--border)}
+    .btn.secondary:hover{background:#f8fafc}
+
+    details.job{border:1px solid var(--border);border-radius:12px;padding:14px 14px;margin:12px 0;background:#fff}
+    details.job[open]{box-shadow:0 4px 20px rgba(0,0,0,.06)}
+    summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:14px}
+    summary::-webkit-details-marker{display:none}
+    .chev{transition:transform .2s ease}
+    details[open] .chev{transform:rotate(90deg)}
+    .s-title{font-weight:900}
+    .s-fit{color:#475569;font-size:.92rem}
+    .pill{margin-left:auto;display:inline-block;padding:4px 10px;border-radius:999px;font-size:.82rem;font-weight:900}
+    .pill.ok{background:#ecfdf5;color:#065f46}
+    .pill.bad{background:#fef2f2;color:#991b1b}
+    .val{min-width:52px;text-align:right;font-variant-numeric:tabular-nums;color:#334155}
+    .block{margin-top:12px;border-top:1px dashed var(--border);padding-top:12px}
+
+    .badge{display:inline-block;padding:6px 10px;border-radius:999px;background:#fff5f5;color:#991b1b;font-weight:900;font-size:.85rem}
+
+    .rail .kv{margin-top:12px;font-size:.95rem;line-height:1.55}
+    .rail .kv b{color:#111827}
+
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+
+    .modal{position:fixed; inset:0; display:none; align-items:center; justify-content:center; padding:18px; z-index:9999;}
+    .modal.open{display:flex}
+    .overlay{position:absolute; inset:0; background:rgba(15,23,42,.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);}
+    .modalcard{position:relative; width:100%; max-width:640px; background:#fff; border:1px solid rgba(229,231,235,.9);
+      border-radius:20px; box-shadow: 0 40px 120px rgba(0,0,0,.35); padding:22px;}
+    .modalcard h3{margin:0 0 6px; font-size:1.4rem}
+    .modalcard p{margin:6px 0; color:var(--muted)}
+    .modalclose{position:absolute; top:12px; right:12px; width:40px; height:40px; border-radius:12px;
+      border:1px solid var(--border); background:#fff; cursor:pointer; font-weight:900;}
+    .modalclose:hover{background:#f8fafc}
+    .modalactions{display:flex; flex-wrap:wrap; gap:10px; margin-top:16px}
+  </style>
+</head>
+
+<body>
+<div class="modal" id="unlockModal" role="dialog" aria-modal="true" aria-labelledby="unlockTitle" aria-describedby="unlockDesc">
+  <div class="overlay" id="unlockOverlay"></div>
+  <div class="modalcard">
+    <button class="modalclose" type="button" id="unlockClose" aria-label="Close">✕</button>
+    <h3 id="unlockTitle" th:text="#{sample.r.modalTitle}">Unlock your full career fit report</h3>
+    <p id="unlockDesc" th:utext="#{sample.r.modalDesc}">This is a <b>preview</b> screen.</p>
+    <div class="modalactions">
+      <a class="btn secondary" th:href="@{/login}" href="/login" th:text="#{sample.common.login}">Log in</a>
+      <a class="btn" th:href="@{/add-user}" href="/add-user" th:text="#{sample.r.create}">Create account</a>
+      <button class="btn secondary" type="button" id="unlockStay" th:text="#{sample.r.modalStay}">Continue viewing demo</button>
+    </div>
+    <p class="small muted" style="margin-top:12px" th:text="#{sample.r.modalTip}">
+      Tip: With an account, you can resume later from the exact page you left off.
+    </p>
+  </div>
+</div>
+
+<main class="wrap">
+  <section class="card">
+    <h1 th:text="#{sample.r.title}">Sample Results (Preview)</h1>
+    <p class="lead" th:utext="#{sample.r.lead}">This is a demo screen…</p>
+
+    <div class="notice" role="note" aria-label="Preview notice">
+      <b th:text="#{sample.r.noticeTitle}">Important:</b>
+      <ul>
+        <li th:utext="#{sample.r.notice1}">This preview uses only <b>6 questions</b>…</li>
+        <li th:utext="#{sample.r.notice2}">These are <b>dummy recommendations</b>…</li>
+        <li th:text="#{sample.r.notice3}">For your real report…</li>
+      </ul>
+    </div>
+
+    <h2>
+      <span th:text="#{sample.r.sectionEligible}">Top sectors (Eligible now)</span>
+      · <span class="muted" th:text="#{sample.r.demo}">Demo</span>
+    </h2>
+    <div id="eligibleList" class="muted" th:text="#{sample.r.loading}">Loading…</div>
+
+    <h2>
+      <span th:text="#{sample.r.sectionNear}">Could have been Top‑5 if you were eligible</span>
+      · <span class="muted" th:text="#{sample.r.demo}">Demo</span>
+    </h2>
+    <div id="nearMissList" class="muted" th:text="#{sample.r.loading}">Loading…</div>
+
+    <div class="actions" style="margin-top:18px">
+      <a class="btn secondary" th:href="@{/sample/questions(lang=${#locale.language})}" href="/sample/questions" th:text="#{sample.r.edit}">Edit sample answers</a>
+      <a class="btn secondary" th:href="@{/login}" href="/login" th:text="#{sample.common.login}">Log in</a>
+      <a class="btn" th:href="@{/add-user}" href="/add-user" th:text="#{sample.r.create}">Create account</a>
+    </div>
+  </section>
+
+  <aside class="card rail">
+    <div class="badge" th:text="#{sample.r.sidebarTitle}">Profile & Answers</div>
+    <div class="small muted" style="margin-top:8px" th:text="#{sample.r.sidebarNote}">
+      Pulled from your sample answers (saved in this tab only).
+    </div>
+
+    <div class="kv">
+      <div><b th:text="#{sample.r.fieldEdu}">Education</b>: <span id="eduVal">—</span></div>
+      <div><b th:text="#{sample.r.fieldPhone}">Smartphone access</b>: <span id="phoneVal">—</span></div>
+    </div>
+
+    <div class="actions" style="margin-top:14px">
+      <button class="btn" type="button" id="unlockBtn" style="width:100%" th:text="#{sample.r.unlock}">Unlock full report</button>
+      <button class="btn secondary" type="button" id="restartBtn" style="width:100%" th:text="#{sample.r.restart}">Restart sample</button>
+      <a class="btn secondary" th:href="@{/(lang=${#locale.language})}" href="/" style="width:100%" th:text="#{sample.r.backHome}">Back to home</a>
+    </div>
+  </aside>
+</main>
+
+<script th:inline="javascript">
+  (function(){
+    const STORE_KEY = "pk_sample_preview_v1";
+    const HOME_URL = /*[[@{/(lang=${#locale.language})}]]*/ "/";
+
+    const I18N = {
+      eligible: /*[[#{sample.r.pillEligible}]]*/ "Eligible",
+      notEligible: /*[[#{sample.r.pillNotEligible}]]*/ "Not eligible",
+      whatsMissing: /*[[#{sample.r.whatMissing}]]*/ "What’s missing:",
+      entryRoles: /*[[#{sample.r.entryRoles}]]*/ "Entry roles nearby (demo)",
+      demoOnly: /*[[#{sample.r.demoOnly}]]*/ "Demo only — the full report is personalised to your district and profile.",
+      noneEligible: /*[[#{sample.r.noneEligible}]]*/ "No eligible sectors in this demo…",
+      noneNear: /*[[#{sample.r.noneNear}]]*/ "None in this demo…",
+      yes: /*[[#{sample.yes}]]*/ "Yes",
+      no: /*[[#{sample.no}]]*/ "No"
+    };
+
+    const EDU = {
+      "0": /*[[#{sample.edu.0}]]*/ "No formal schooling",
+      "1": /*[[#{sample.edu.1}]]*/ "8th pass",
+      "2": /*[[#{sample.edu.2}]]*/ "10th pass (SSC)",
+      "3": /*[[#{sample.edu.3}]]*/ "12th pass (HSC)",
+      "4": /*[[#{sample.edu.4}]]*/ "Diploma / ITI",
+      "5": /*[[#{sample.edu.5}]]*/ "Graduate",
+      "6": /*[[#{sample.edu.6}]]*/ "Post‑graduate or higher"
+    };
+
+    const sectors = [
+      {
+        id: "housekeeping",
+        name: /*[[#{sample.sector.housekeeping.name}]]*/ "Housekeeping / Facilities",
+        score: 62.2,
+        why: /*[[#{sample.sector.housekeeping.why}]]*/ "Why fit: Attention to Detail, Safety & Hygiene",
+        requires: { },
+        entryRoles: [
+          /*[[#{sample.sector.housekeeping.role1}]]*/ "Housekeeping Attendant",
+          /*[[#{sample.sector.housekeeping.role2}]]*/ "Facility Helper"
+        ],
+        note: /*[[#{sample.sector.housekeeping.note}]]*/ "Wide availability across hospitals, hotels, and offices."
+      },
+      {
+        id: "retail",
+        name: /*[[#{sample.sector.retail.name}]]*/ "Retail / Store Operations",
+        score: 63.4,
+        why: /*[[#{sample.sector.retail.why}]]*/ "Why fit: Communication, Teamwork & Cooperation",
+        requires: { smartphone: "yes" },
+        missing: [ /*[[#{sample.sector.retail.miss1}]]*/ "Smartphone required for daily work / updates" ],
+        entryRoles: [
+          /*[[#{sample.sector.retail.role1}]]*/ "Sales Associate",
+          /*[[#{sample.sector.retail.role2}]]*/ "Store Helper"
+        ],
+        note: /*[[#{sample.sector.retail.note}]]*/ "Good if you like structured daily tasks."
+      },
+      {
+        id: "lab",
+        name: /*[[#{sample.sector.lab.name}]]*/ "Lab Technician Assistant",
+        score: 64.0,
+        why: /*[[#{sample.sector.lab.why}]]*/ "Why fit: Attention to Detail, Integrity & Documentation",
+        requires: { minEducation: 3 },
+        missing: [ /*[[#{sample.sector.lab.miss1}]]*/ "Minimum education required: 12th pass (HSC)" ],
+        entryRoles: [
+          /*[[#{sample.sector.lab.role1}]]*/ "Lab Assistant",
+          /*[[#{sample.sector.lab.role2}]]*/ "Sample Collection Helper"
+        ],
+        note: /*[[#{sample.sector.lab.note}]]*/ "Strong demand in diagnostic labs and hospitals."
+      },
+      {
+        id: "customer",
+        name: /*[[#{sample.sector.customer.name}]]*/ "Customer Service (In‑store)",
+        score: 62.9,
+        why: /*[[#{sample.sector.customer.why}]]*/ "Why fit: Service Orientation, Calm communication",
+        requires: { },
+        entryRoles: [
+          /*[[#{sample.sector.customer.role1}]]*/ "Customer Support Executive",
+          /*[[#{sample.sector.customer.role2}]]*/ "Front Desk Assistant"
+        ],
+        note: /*[[#{sample.sector.customer.note}]]*/ "People-facing roles where clear communication matters."
+      }
+    ];
+
+    function loadAnswers(){
+      try {
+        const s = JSON.parse(sessionStorage.getItem(STORE_KEY) || '{"answers":{}}');
+        return (s && s.answers && typeof s.answers === "object") ? s.answers : {};
+      } catch(e){
+        return {};
+      }
+    }
+    function clearStore(){
+      try { sessionStorage.removeItem(STORE_KEY); } catch(e){}
+    }
+    function prettyEducation(v){
+      const k = (v == null) ? "" : String(v);
+      return EDU[k] || "—";
+    }
+
+    const answers = loadAnswers();
+    const edu = answers["gate.education"];
+    const phone = answers["gate.smartphone"];
+
+    document.getElementById("eduVal").textContent = prettyEducation(edu);
+    document.getElementById("phoneVal").textContent = (phone === "yes") ? I18N.yes : (phone === "no" ? I18N.no : "—");
+
+    function isEligible(sec){
+      const eduNum = (edu == null) ? null : parseInt(String(edu), 10);
+      if (sec.requires && typeof sec.requires.minEducation === "number"){
+        if (!Number.isFinite(eduNum) || eduNum < sec.requires.minEducation) return false;
+      }
+      if (sec.requires && sec.requires.smartphone){
+        if (phone !== sec.requires.smartphone) return false;
+      }
+      return true;
+    }
+
+    function renderSector(sec, eligible, open){
+      const pill = eligible
+        ? `<span class="pill ok">${I18N.eligible}</span>`
+        : `<span class="pill bad">${I18N.notEligible}</span>`;
+
+      const missingBlock = (!eligible && sec.missing && sec.missing.length)
+        ? `<div class="block">
+             <div class="small" style="color:#991b1b;font-weight:900">${I18N.whatsMissing}</div>
+             <ul class="small" style="margin:6px 0 0 18px;color:#475569">
+               ${sec.missing.map(m => `<li>${m}</li>`).join("")}
+             </ul>
+           </div>`
+        : "";
+
+      return `
+        <details class="job" ${open ? "open" : ""}>
+          <summary>
+            <span class="chev">▶</span>
+            <div style="flex:1">
+              <div class="s-title">${sec.name}</div>
+              <div class="s-fit">${sec.why}</div>
+            </div>
+            <div class="val">${sec.score.toFixed(1)}</div>
+            ${pill}
+          </summary>
+
+          ${missingBlock}
+
+          <div class="block">
+            <div style="font-weight:900;margin-bottom:6px">${I18N.entryRoles}</div>
+            <ul style="margin:6px 0 0 18px">
+              ${sec.entryRoles.map(r => `<li>${r}</li>`).join("")}
+            </ul>
+            <div class="small muted" style="margin-top:8px">${sec.note}</div>
+            <div class="small muted" style="margin-top:8px">${I18N.demoOnly}</div>
+          </div>
+        </details>
+      `;
+    }
+
+    const eligibleList = sectors.filter(isEligible).sort((a,b)=>b.score-a.score);
+    const nearMissList = sectors.filter(s => !isEligible(s)).sort((a,b)=>b.score-a.score);
+
+    const eligibleEl = document.getElementById("eligibleList");
+    const nearEl = document.getElementById("nearMissList");
+
+    if (!eligibleList.length){
+      eligibleEl.innerHTML = `<div class="muted">${I18N.noneEligible}</div>`;
+    } else {
+      eligibleEl.innerHTML = eligibleList.map((s,i)=>renderSector(s, true, i===0)).join("");
+    }
+
+    if (!nearMissList.length){
+      nearEl.innerHTML = `<div class="muted">${I18N.noneNear}</div>`;
+    } else {
+      nearEl.innerHTML = nearMissList.map((s,i)=>renderSector(s, false, i===0)).join("");
+    }
+
+    const modal = document.getElementById("unlockModal");
+    const openBtn = document.getElementById("unlockBtn");
+    const closeBtn = document.getElementById("unlockClose");
+    const overlay = document.getElementById("unlockOverlay");
+    const stayBtn = document.getElementById("unlockStay");
+
+    function openModal(){ modal.classList.add("open"); }
+    function closeModal(){ modal.classList.remove("open"); }
+
+    openBtn.addEventListener("click", openModal);
+    closeBtn.addEventListener("click", closeModal);
+    overlay.addEventListener("click", closeModal);
+    stayBtn.addEventListener("click", closeModal);
+    document.addEventListener("keydown", (e)=>{ if(e.key==="Escape") closeModal(); });
+
+    document.getElementById("restartBtn").addEventListener("click", ()=>{
+      clearStore();
+      window.location.href = HOME_URL;
+    });
+  })();
+</script>
+</body>
+</html>
